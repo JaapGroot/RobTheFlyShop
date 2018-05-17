@@ -1,11 +1,15 @@
 #include <kore/kore.h>
 #include <kore/http.h>
 
-int		page(struct http_request *);
+#include "assets.h"
 
+//function prototype for serving the index
+int		serve_index(struct http_request *);
+
+//
 int
-page(struct http_request *req)
+serve_index(struct http_request *req)
 {
-	http_response(req, 200, NULL, 0);
+	http_response(req, 200, asset_index_html, 2000);
 	return (KORE_RESULT_OK);
 }

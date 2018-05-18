@@ -6,7 +6,8 @@
 //function prototypes
 //serving pages
 int		serve_index(struct http_request *);
-int		serve_linked(struct http_request *);
+int		serve_login(struct http_request *);
+int		serve_logedin(struct http_request *);
 
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
@@ -38,10 +39,40 @@ serve_index(struct http_request *req)
 }
 	
 int
-serve_linked(struct http_request *req)
+serve_login(struct http_request *req)
 {	
+	u_int8_t success = 1;
+	//if this page was loaded with a post request
+	if(req->method == HTTP_METHOD_POST){
+	//check if the entered credentials werent wrong
+	http_populate_post(req);
+	//TODO: FIND OUT WHERE I CAN FIND THE POST VARIABLES AND SEE IF THEY ARENT SCRAPPED BY THE VALIDATOR
+	//TODO: GIVE WARNING THAT INVALID PARAMETERS WERE ENTERED
+	//also, maybe stick this in a different function in a different file
+
+	//TODO: ADD LOGIN LOGIC HERE!
+	
+	//see if loging in was a success,
+	if(success){
+		//serve the logged in page
+	serve_page(req, asset_logedin_html, asset_len_logedin_html);
+	}else{
+		//TODO: ADD a warning to the content, and serve the login page again
+		serve_page(req, asset_login_html, asset_len_login_html);
+	}
+
+
+	}else{
+		//if this was not a post request, just serve the page
 	//to serve static content simply call serve page with the static content
-	serve_page(req, asset_linked_html, asset_len_linked_html);
+	serve_page(req, asset_login_html, asset_len_login_html);
+	}
+	return (KORE_RESULT_OK);
+}
+
+int serve_logedin(struct http_request *req){
+	//to serve a page with static content, simply call serve page with the content you want
+	serve_page(req, asset_logedin_html, asset_len_logedin_html);
 	return (KORE_RESULT_OK);
 }
 

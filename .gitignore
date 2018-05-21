@@ -1,0 +1,6 @@
+*.o
+.flavor
+.objs
+RobTheFlyShop.so
+assets.h
+cert

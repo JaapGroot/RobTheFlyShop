@@ -42,31 +42,45 @@ int
 serve_login(struct http_request *req)
 {	
 	u_int8_t success = 1;
-	//if this page was loaded with a post request
-	if(req->method == HTTP_METHOD_POST){
-	//check if the entered credentials werent wrong
-	http_populate_post(req);
-	//TODO: FIND OUT WHERE I CAN FIND THE POST VARIABLES AND SEE IF THEY ARENT SCRAPPED BY THE VALIDATOR
-	//TODO: GIVE WARNING THAT INVALID PARAMETERS WERE ENTERED
-	//also, maybe stick this in a different function in a different file
-
-	//TODO: ADD LOGIN LOGIC HERE!
 	
-	//see if loging in was a success,
-	if(success){
-		//serve the logged in page
-	serve_page(req, asset_logedin_html, asset_len_logedin_html);
-	}else{
-		//TODO: ADD a warning to the content, and serve the login page again
-		serve_page(req, asset_login_html, asset_len_login_html);
-	}
+	struct kore_buf		*b;
+	u_int8_t		*d;
+	size_t			len;
+	int			r, i;
+	char	*test, name[10];
+	
+	if (req->method == HTTP_METHOD_GET)
+		http_populate_get(req);
+	else if (req->method == HTTP_METHOD_POST)
+		http_populate_post(req);
 
+	
+	b = kore_buf_alloc(asset_len_login_html);
+	kore_buf_append(b, asset_login_html, asset_len_login_html);
 
-	}else{
-		//if this was not a post request, just serve the page
-	//to serve static content simply call serve page with the static content
-	serve_page(req, asset_login_html, asset_len_login_html);
-	}
+	if (req->method == HTTP_METHOD_GET) {
+		kore_buf_replace_string(b, "$mail$", NULL, 0);
+		kore_buf_replace_string(b, "$password$", NULL, 0);
+		//kore_buf_replace_string(b, "$test3$", NULL, 0);
+
+		//if (http_argument_get_uint16(req, "id", &r))
+		//	kore_log(LOG_NOTICE, "id: %d", r);
+		//else
+		//	kore_log(LOG_NOTICE, "No id set");
+
+		http_response_header(req, "content-type", "text/html");
+		d = kore_buf_release(b, &len);
+	serve_page(req, d, len);
+		kore_free(d);
+
+		return (KORE_RESULT_OK);
+	}	
+
+	http_response_header(req, "content-type", "text/html");
+	d = kore_buf_release(b, &len);
+	serve_page(req, d, len);
+	kore_free(d);
+	
 	return (KORE_RESULT_OK);
 }
 

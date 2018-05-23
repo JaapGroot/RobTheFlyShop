@@ -18,10 +18,22 @@ serve_index(struct http_request *req)
 {
 	//to serve a page from a buffer, like with more dynamic content do the following:
 	//create a buffer
-	size_t		len;
-	struct kore_buf	*buff;
-	u_int8_t	*data;
+	size_t			len;
+	struct kore_buf		*buff;
+	u_int8_t		*data;
+	
+	//Init cookie variables and struct
+	char			*cookie_value;
+	//struct http_cookie	*cookie;
 
+	//first cookie implementation
+	http_populate_cookies(req);
+	if(http_request_cookie(req, "Simple", &cookie_value))
+		kore_log(LOG_DEBUG, "Got simple: %s", cookie_value);
+
+	http_response_cookie(req, "Simple", "hello world", req->path, 0, 0, NULL);
+	
+	//Implement buffer for the index
 	buff = kore_buf_alloc(0);
 
 	//add the content you want to the buffer

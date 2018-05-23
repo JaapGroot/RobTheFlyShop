@@ -70,7 +70,7 @@ serve_login(struct http_request *req)
 
 		http_response_header(req, "content-type", "text/html");
 		d = kore_buf_release(b, &len);
-	serve_page(req, d, len);
+		serve_page(req, d, len);
 		kore_free(d);
 
 		return (KORE_RESULT_OK);

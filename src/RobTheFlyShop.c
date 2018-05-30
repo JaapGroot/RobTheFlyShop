@@ -53,41 +53,49 @@ serve_index(struct http_request *req)
 int
 serve_login(struct http_request *req)
 {	
-	u_int8_t success = 1;
+	u_int8_t success = 0;
 	
 	struct kore_buf		*b;
 	u_int8_t		*d;
 	size_t			len;
-	int			r, i;
-	char	*test, name[10];
-	
-	if (req->method == HTTP_METHOD_GET)
+	char			*mail, *pass;
+
+	//first allocate the buffer
+	b = kore_buf_alloc(0);
+
+	if (req->method == HTTP_METHOD_GET){
 		http_populate_get(req);
-	else if (req->method == HTTP_METHOD_POST)
+	}
+
+	else if (req->method == HTTP_METHOD_POST){
+		//populate and do regex validation on post request
 		http_populate_post(req);
 
+		//check if the entry was correct
+		if(http_argument_get_string(req, "Email", &mail) && http_argument_get_string(req, "Password", &pass)){
+			//login logic here
+			//variables are stored at *mail and *pass
+			//
+			success = 1;
+		}else{
+			//else let the user know they did it wrong
+			kore_buf_append(b, asset_loginwarning_html, asset_len_loginwarning_html);
+			success = 0;
+		}
+	}
 	
-	b = kore_buf_alloc(asset_len_login_html);
-	kore_buf_append(b, asset_login_html, asset_len_login_html);
-
-	if (req->method == HTTP_METHOD_GET) {
-		kore_buf_replace_string(b, "$mail$", NULL, 0);
-		kore_buf_replace_string(b, "$password$", NULL, 0);
-		//kore_buf_replace_string(b, "$test3$", NULL, 0);
-
-		//if (http_argument_get_uint16(req, "id", &r))
-		//	kore_log(LOG_NOTICE, "id: %d", r);
-		//else
-		//	kore_log(LOG_NOTICE, "No id set");
-
-		http_response_header(req, "content-type", "text/html");
-		d = kore_buf_release(b, &len);
-		serve_page(req, d, len);
-		kore_free(d);
-
-		return (KORE_RESULT_OK);
-	}	
-
+	//if login was successful
+	if(success){
+		//TODO: give a cookie to the user
+		
+		//show the user the logedin page
+		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
+	}else{
+		//seve the normal page again
+		kore_buf_append(b, asset_login_html, asset_len_login_html);
+	}
+	
+	//serve the page.
 	http_response_header(req, "content-type", "text/html");
 	d = kore_buf_release(b, &len);
 	serve_page(req, d, len);

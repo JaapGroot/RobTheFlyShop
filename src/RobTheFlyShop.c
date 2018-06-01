@@ -1,9 +1,13 @@
 #include <kore/kore.h>
 #include <kore/http.h>
+#include <kore/pgsql.h>
 
 #include "assets.h"
 
 //function prototypes
+//initialization
+int init(int);
+
 //serving pages
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
@@ -11,6 +15,14 @@ int		serve_logedin(struct http_request *);
 
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
+
+//initializes stuff
+int init(int state){
+	//init database
+	//the connection string might be wrong... also make sure to turn on the database server
+	kore_pgsql_register("DB", "host=/var/lib/postgresql/9.6/main dbname=rtfsdb"); 
+	return (KORE_RESULT_OK);
+}
 
 //actual functions
 int
@@ -73,10 +85,28 @@ serve_login(struct http_request *req)
 
 		//check if the entry was correct
 		if(http_argument_get_string(req, "Email", &mail) && http_argument_get_string(req, "Password", &pass)){
-			//login logic here
+			//TODO: login logic here
 			//variables are stored at *mail and *pass
 			//
+			//reserve some variables
+			struct kore_pgsql sql;
+			char *name;
+			int rows,i;
+			
+			//init the database
+			kore_pgsql_init(&sql);
+			
+			//try to connect to the database we called DB for synchronous database searches.
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				//if we couln't connect log the error,
+				//youll be resent to the login page as if nothing happened
+				success = 0;
+				kore_pgsql_logerror(&sql);
+			}else{
+			//if we did connect you'll be sent to the page that tells you youre logged in
 			success = 1;
+
+			}
 		}else{
 			//else let the user know they did it wrong
 			kore_buf_append(b, asset_loginwarning_html, asset_len_loginwarning_html);

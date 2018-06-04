@@ -2,6 +2,8 @@
 #include <kore/http.h>
 #include <kore/pgsql.h>
 
+#include <stdio.h>
+
 #include "assets.h"
 
 //function prototypes
@@ -20,7 +22,7 @@ int serve_page(struct http_request *, u_int8_t *, size_t len);
 int init(int state){
 	//init database
 	//the connection string might be wrong... also make sure to turn on the database server
-	kore_pgsql_register("DB", "host=/var/lib/postgresql/9.6/main dbname=rtfsdb"); 
+	kore_pgsql_register("DB", "host=localhost password=root dbname=rtfsdb"); 
 	return (KORE_RESULT_OK);
 }
 
@@ -104,7 +106,23 @@ serve_login(struct http_request *req)
 				kore_pgsql_logerror(&sql);
 			}else{
 			//if we did connect you'll be sent to the page that tells you youre logged in
-			success = 1;
+				//try to query the email address
+				kore_log(LOG_NOTICE, "Alloc buff\n");
+				struct kore_buf *query;
+				query = kore_buf_alloc(0);
+				kore_log(LOG_NOTICE, "appending base query");
+				kore_buf_append(query, "SELECT * FROM users WHERE mail=\'$MAIL$\'", strlen("SELECT * FROM users WHERE mail=\'$MAIL$\'"));
+				kore_log(LOG_NOTICE,"REPLACING target");
+				kore_buf_replace_string(query, "$MAIL$", *mail, strlen(*mail));
+				kore_log(LOG_NOTICE,"SUCCESS!!!!");
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
+				}
+				rows = kore_pgsql_ntuples(&sql);
+				for(i = 0; i<rows; i++){
+					name = kore_pgsql_getvalue(&sql, i, 1);
+					kore_log(LOG_NOTICE, "name: '%s'\n", name);
+				}
 
 			}
 		}else{

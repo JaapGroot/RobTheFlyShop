@@ -72,7 +72,7 @@ ALTER TABLE users_flight ADD CONSTRAINT FKflight_users FOREIGN KEY (flightflight
 INSERT INTO users (first_name, last_name, mail, password) VALUES ('John', 'Doe', 'test@mail.com', '12345678');
 
 #Add test flight
-INSERT INTO flight(flight_date, location) VALUES ('2018-15-10 9-35', 'Moscow');
+INSERT INTO flight(flight_date, cost_rob_miles, location) VALUES ('2018-15-10 9-35', '999', 'Moscow');
 
 #Add test user with flight
 INSERT INTO users_flight (useruser_id, flightflight_nr) VALUES ('1', '1'); 

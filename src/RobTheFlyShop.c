@@ -2,6 +2,9 @@
 #include <kore/http.h>
 #include <kore/pgsql.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "assets.h"
 
 //function prototypes
@@ -20,7 +23,7 @@ int serve_page(struct http_request *, u_int8_t *, size_t len);
 int init(int state){
 	//init database
 	//the connection string might be wrong... also make sure to turn on the database server
-	kore_pgsql_register("DB", "host=/var/lib/postgresql/9.6/main dbname=rtfsdb"); 
+	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb"); 
 	return (KORE_RESULT_OK);
 }
 
@@ -71,6 +74,7 @@ serve_login(struct http_request *req)
 	u_int8_t		*d;
 	size_t			len;
 	char			*mail, *pass;
+	int			UserId = 0;
 
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
@@ -85,17 +89,16 @@ serve_login(struct http_request *req)
 
 		//check if the entry was correct
 		if(http_argument_get_string(req, "Email", &mail) && http_argument_get_string(req, "Password", &pass)){
-			//TODO: login logic here
+			//TODO: add pass salting and stuff
 			//variables are stored at *mail and *pass
 			//
 			//reserve some variables
 			struct kore_pgsql sql;
-			char *name;
-			int rows,i;
+			int rows;
 			
 			//init the database
 			kore_pgsql_init(&sql);
-			
+
 			//try to connect to the database we called DB for synchronous database searches.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				//if we couln't connect log the error,
@@ -104,10 +107,30 @@ serve_login(struct http_request *req)
 				kore_pgsql_logerror(&sql);
 			}else{
 			//if we did connect you'll be sent to the page that tells you youre logged in
-			success = 1;
+				//build query
+				char query[100];
+				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\' AND password=\'%s\'", mail, pass); 
 
+				kore_log(LOG_NOTICE, "%s", query);
+				//preform the query
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
+				}
+
+				//if there were no results the mail or password were incorrect, if there are more then 1 multiple users were selected wich shouldn't happen, so there should only be result if the login is succesful
+				rows = kore_pgsql_ntuples(&sql);
+				kore_log(LOG_NOTICE, "rows: %i", rows);
+				if(rows == 1){
+					//set the user id from the database
+					UserId = atoi(kore_pgsql_getvalue(&sql, 0, 0));
+					success = 1;
+				}
 			}
-		}else{
+
+			//interfacing with the database is done, clean up...
+			kore_pgsql_cleanup(&sql);
+		}
+		if(!success){
 			//else let the user know they did it wrong
 			kore_buf_append(b, asset_loginwarning_html, asset_len_loginwarning_html);
 			success = 0;
@@ -117,7 +140,10 @@ serve_login(struct http_request *req)
 	//if login was successful
 	if(success){
 		//TODO: give a cookie to the user
-		
+	
+		//the user id should be stored in UserId
+		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
+
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
 	}else{

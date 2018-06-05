@@ -56,14 +56,23 @@ CREATE TABLE users_flight (
   flightflight_nr));
 );
 
+//Create session table
+CREATE TABLE session (
+  usersuser_id int4, 
+  session_id   varchar(512) NOT NULL, 
+  expire_date  timestamp NOT NULL, 
+  login_tries  int4 NOT NULL, 
+  PRIMARY KEY (session_id));
+  
+ALTER TABLE session ADD CONSTRAINT FKsession FOREIGN KEY (usersuser_id) REFERENCES users (user_id) ON UPDATE Cascade ON DELETE Cascade;
 ALTER TABLE users_flight ADD CONSTRAINT FKusers_flight FOREIGN KEY (useruser_id) REFERENCES users (user_id);
 ALTER TABLE users_flight ADD CONSTRAINT FKflight_users FOREIGN KEY (flightflight_nr) REFERENCES flight (flight_nr);
 
 #To add a test user execute the following commands:
-INSER INTO users (first_name, last_name, mail, password) VALUES ('John', 'Doe', 'test@mail.com', '12345678');
+INSERT INTO users (first_name, last_name, mail, password) VALUES ('John', 'Doe', 'test@mail.com', '12345678');
 
 #Add test flight
-INSERT INTO flight(flight_date, location) VALUES ('2018-15-10 9-35', 'Moscow');
+INSERT INTO flight(flight_date, cost_rob_miles, location) VALUES ('2018-15-10 9-35', '999', 'Moscow');
 
 #Add test user with flight
 INSERT INTO users_flight (useruser_id, flightflight_nr) VALUES ('1', '1'); 

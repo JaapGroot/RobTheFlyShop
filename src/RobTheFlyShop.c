@@ -23,7 +23,7 @@ int serve_page(struct http_request *, u_int8_t *, size_t len);
 int init(int state){
 	//init database
 	//the connection string might be wrong... also make sure to turn on the database server
-	kore_pgsql_register("DB", "host=localhost password=root dbname=rtfsdb"); 
+	kore_pgsql_register("DB", "host=localhost name=pgadmin password=root dbname=rtfsdb"); 
 	return (KORE_RESULT_OK);
 }
 

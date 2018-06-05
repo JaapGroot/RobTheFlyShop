@@ -26,6 +26,13 @@ CREATE DATABASE rtfsdb OWNER pgadmin;
 su - pgadmin
 psql rtfsdb
 
+Go to the gitfolder
+cp -r /base /var/lib/postgresql/9.6/main
+
+
+
+
+---Depricated
 #Execute the following querry's in order. Check after each querry of it exists with \d.
 //Create the users database
 CREATE TABLE users (

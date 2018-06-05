@@ -1,0 +1,7 @@
+	<form action="/login" method="post">
+		Email:<br>
+		<input type="input" name="Email" ><br>
+		Password:<br>
+		<input type="password" name="Password" ><br>
+		<input type="submit" value="Login">
+	</form>

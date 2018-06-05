@@ -15,7 +15,13 @@ int init(int);
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
+int		serve_adminflight(struct http_request *);
+int		serve_adminmiles(struct http_request *);
+int		serve_adminorders(struct http_request *);
+int 		serve_adminaccount(struct http_request *);
 
+//validator functions
+int v_admin_validate(struct http_request *, char *);
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
 
@@ -166,6 +172,23 @@ int serve_logedin(struct http_request *req){
 	return (KORE_RESULT_OK);
 }
 
+int serve_adminflight(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+int serve_adminmiles(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+int serve_adminorders(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+int serve_adminaccount(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+
 //serve page
 //this function takes a buffer containting the content of the page and sends an http_response for the full page
 int serve_page(struct http_request *req, u_int8_t *content, size_t content_length){
@@ -178,6 +201,14 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 
 	//add the header, content and footer to the page
 	kore_buf_append(buff, asset_DefaultHeader_html, asset_len_DefaultHeader_html);
+	//change content of sidebar based on user role
+	//do quick database check for user role
+	//if the role is admin, show admin sidebar,
+	//if the role is user, show logout button,
+	//else show login button because the user is not logedin
+	kore_buf_replace_string(buff, "$sideoptions$", asset_adminoptions_html,
+			asset_len_adminoptions_html);
+	
 	kore_buf_append(buff, content, content_length);
 	kore_buf_append(buff, asset_DefaultFooter_html, asset_len_DefaultFooter_html);
 	
@@ -189,4 +220,10 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	kore_free(data);
 
 	return(KORE_RESULT_OK);
+}
+
+//Validator functions
+int v_admin_validate(struct http_request *req, char *data) {
+	//TODO: Moet nog gemaakt worden, momenteel voor testen admin page
+	return (KORE_RESULT_OK);
 }

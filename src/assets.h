@@ -1,5 +1,15 @@
 #ifndef __H_KORE_ASSETS_H
 #define __H_KORE_ASSETS_H
+extern const u_int8_t asset_admin_html[];
+extern const u_int32_t asset_len_admin_html;
+extern const time_t asset_mtime_admin_html;
+extern const char *asset_sha256_admin_html;
+int asset_serve_admin_html(struct http_request *);
+extern const u_int8_t asset_adminoptions_html[];
+extern const u_int32_t asset_len_adminoptions_html;
+extern const time_t asset_mtime_adminoptions_html;
+extern const char *asset_sha256_adminoptions_html;
+int asset_serve_adminoptions_html(struct http_request *);
 extern const u_int8_t asset_DefaultFooter_html[];
 extern const u_int32_t asset_len_DefaultFooter_html;
 extern const time_t asset_mtime_DefaultFooter_html;

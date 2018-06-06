@@ -14,11 +14,6 @@
 #define SQL_FLIGHT_DATE (1)
 #define SQL_FLIGHT_NUMBER (0)
 
-//function prototypes
-//initialization
-int init(int);
-
-//Macros
 #define SQL_USERS_ID (0)
 #define SQL_USERS_FIRST_NAME (1)
 #define SQL_USERS_LAST_NAME (2)
@@ -26,6 +21,10 @@ int init(int);
 #define SQL_USERS_PASSWORD (4)
 #define SQL_USERS_USER_ROLE (5)
 #define SQL_USERS_ROB_MILES (6)
+
+//function prototypes
+//initialization
+int init(int);
 
 //serving pages
 int		serve_index(struct http_request *);
@@ -270,6 +269,7 @@ int serve_adminmiles(struct http_request *req) {
 			if(!kore_pgsql_query(&sql, query)){
 				kore_pgsql_logerror(&sql);
 			}
+<<<<<<< HEAD
 			//Else query succesfully executed. 
 			else {	
 			//Get the rows and make a char to create the HTML list. 	
@@ -290,6 +290,21 @@ int serve_adminmiles(struct http_request *req) {
 			}
 		}
 		//Release the database after use.
+=======
+			kore_log(1, "%d", rows);
+			char list[300];
+			for(i=0; i<rows; i++) {
+				sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
+				lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
+				firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
+				mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);				
+				kore_log(1, "%s %s %s %s", sID, lastName, firstName, mail);
+				snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName, mail);
+				kore_log(1, list);	
+				kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			}
+		}
+>>>>>>> 9f046d65135f07092a245fe29ae041fc08ae2cab
 		kore_pgsql_cleanup(&sql);
 	}
 	//If it is a POST method. To add the RobMiles

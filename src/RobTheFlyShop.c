@@ -30,6 +30,7 @@ int init(int);
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
+int		serve_register(struct http_request *);
 int		serve_adminflight(struct http_request *);
 int		serve_adminmiles(struct http_request *);
 int		serve_adminorders(struct http_request *);
@@ -218,6 +219,40 @@ int serve_adminflight(struct http_request *req) {
 	return (KORE_RESULT_OK);
 }
 
+//Function for serving the register page, along with the logic of registering a user
+int serve_register(struct http_request *req){
+	char *firstName, *lastName, *mail, *password;
+	//whatever the datatype is for a hash and salt
+	struct kore_buf		*b;
+	u_int8_t 		*d;
+	size_t			len;
+	struct kore_pgsql	sql;
+	b = kore_buf_alloc(0);
+	kore_buf_append(b, asset_register_html, asset_len_register_html);
+	
+	//if the page was called with a get request
+	if(req->method == HTTP_METHOD_GET){
+		//take out all the tags
+		kore_buf_replace_string(b, "$warning_mail$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_fname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_lname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_pass$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_box$", NULL, 0);
+	}else if(req->method == HTTP_METHOD_POST){
+		u_int8_t	inputvalid = 1;
+
+		http_populate_post(req);
+
+		//check if input is valid
+		//if not, put up warning and set input vallid to 0;
+	}
+
+	d = kore_buf_release(b, &len);
+	serve_page(req, d, len);
+	kore_free(d);
+	return(KORE_RESULT_OK);
+}
+
 //Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
 int serve_adminmiles(struct http_request *req) {
 	char			*name, *firstName, *lastName, *mail, *sID, *rMiles;
@@ -234,6 +269,7 @@ int serve_adminmiles(struct http_request *req) {
 	mail = NULL;
 	sID = NULL;
 	rMiles = NULL;
+	rows = 0;
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(64);
@@ -267,7 +303,6 @@ int serve_adminmiles(struct http_request *req) {
 			if(!kore_pgsql_query(&sql, query)){
 				kore_pgsql_logerror(&sql);
 			}
-			kore_log(1, "%d", rows);
 			char list[300];
 			for(i=0; i<rows; i++) {
 				sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);

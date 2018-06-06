@@ -1,0 +1,23 @@
+	<p>Op deze pagina kunnen Rob Miles toegevoegd worden.</p>
+	<p>Zoek een gebruiker en voeg vervolgens de Rob Miles toe. Er worden maximaal 50 gebruikers
+	weergeven</p>
+
+	<form action="/admin/add_miles" method="get">
+		Last name: 
+		<input type="input" name="lastName">
+		<input type="submit" value="Search">
+	</form>
+	<p>Search for last name in database: $searchName$</p>
+	<form action="/admin/add_miles" method="post">
+		Name and Email:
+		<select name="selectUser">
+			<!--<option value="$id$">$firstName$ $lastName$ $mail$</option>-->
+			
+			<!--listentry-->
+		</select><br>
+		Amount of Rob Miles:
+		<input type="number" name="robMiles">
+		<input type="submit" value="Add Rob Miles">
+	</form>
+
+

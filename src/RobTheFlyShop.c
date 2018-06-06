@@ -18,11 +18,26 @@
 //initialization
 int init(int);
 
+//Macros
+#define SQL_USERS_ID (0)
+#define SQL_USERS_FIRST_NAME (1)
+#define SQL_USERS_LAST_NAME (2)
+#define SQL_USERS_MAIL (3)
+#define SQL_USERS_PASSWORD (4)
+#define SQL_USERS_USER_ROLE (5)
+#define SQL_USERS_ROB_MILES (6)
+
 //serving pages
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
+int		serve_adminflight(struct http_request *);
+int		serve_adminmiles(struct http_request *);
+int		serve_adminorders(struct http_request *);
+int 		serve_adminaccount(struct http_request *);
 
+//validator functions
+int v_admin_validate(struct http_request *, char *);
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
 
@@ -200,6 +215,127 @@ int serve_logedin(struct http_request *req){
 	return (KORE_RESULT_OK);
 }
 
+int serve_adminflight(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+//Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
+int serve_adminmiles(struct http_request *req) {
+	char			*name, *firstName, *lastName, *mail, *sID, *rMiles;
+	struct kore_buf		*buf;
+	u_int8_t		*data;
+	size_t 			len;
+	struct kore_pgsql 	sql;
+	int			rows, i,  success = 0;
+	
+	//Empty all the values, just be sure.
+	name = NULL;
+	firstName = NULL;
+	lastName = NULL;
+	mail = NULL;
+	sID = NULL;
+	rMiles = NULL;
+
+	//Buffer to store the HTML code and init the database.
+	buf = kore_buf_alloc(64);
+	kore_pgsql_init(&sql);
+
+	//Add the html to the buffer.
+	kore_buf_append(buf, asset_addMiles_html, asset_len_addMiles_html);
+
+	//If the site gets a get request do this.
+	if(req->method == HTTP_METHOD_GET){
+		//Validate input
+		http_populate_get(req);
+	
+		//Get the lastname from the getrequest and change the label to the lastname.
+		if (http_argument_get_string(req, "lastName", &name)) {
+			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
+		}
+		//If failed/no name remove the label.
+		else {
+			kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+		}
+
+		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+			kore_pgsql_logerror(&sql);
+		}
+		else if (name != NULL){
+			char query[150];
+			snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
+			kore_log(LOG_NOTICE, "%s", query);
+		
+			if(!kore_pgsql_query(&sql, query)){
+				kore_pgsql_logerror(&sql);
+			}
+			rows = kore_pgsql_ntuples(&sql);
+			char list[300];
+			for(i=0; i<rows; i++) {
+				sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
+				lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
+				firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
+				mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);				
+				kore_log(1, "%s %s %s %s", sID, lastName, firstName, mail);
+				snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName,
+					mail);
+				kore_log(1, list);	
+				kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			}
+			kore_pgsql_cleanup(&sql);
+
+		}
+
+	}
+	
+	if(req->method == HTTP_METHOD_POST){
+		http_populate_post(req);
+		kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+
+		if (http_argument_get_string(req, "selectUser", &sID) && http_argument_get_string(req, "robMiles", &rMiles)) {
+		kore_log(1, "%s %s", sID, rMiles);
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				kore_pgsql_logerror(&sql);
+			}
+			else{
+				char query[150];
+				snprintf(query, sizeof(query), "UPDATE users SET rob_miles = rob_miles + \'%s\' WHERE user_id = \'%s\'",rMiles, sID);
+				kore_log(LOG_NOTICE, "%s", query);
+		
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
+				}
+				else {	
+					success = 1;
+				}
+				kore_pgsql_cleanup(&sql);
+			}
+		}
+		if (success == 1){
+			kore_buf_append(buf,asset_milesSucces_html,asset_len_milesSucces_html); 
+		}
+		else {
+			kore_buf_append(buf,asset_milesFailed_html,asset_len_milesFailed_html); 
+		
+		}
+		
+	}
+
+	//Serve page
+	data = kore_buf_release(buf, &len);
+	serve_page(req, data, len);
+	kore_free(data);
+	return (KORE_RESULT_OK);
+}
+
+int serve_adminorders(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+int serve_adminaccount(struct http_request *req) {
+	return (KORE_RESULT_OK);
+}
+
+
 //serve page
 //this function takes a buffer containting the content of the page and sends an http_response for the full page
 int serve_page(struct http_request *req, u_int8_t *content, size_t content_length){
@@ -212,6 +348,14 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 
 	//add the header, content and footer to the page
 	kore_buf_append(buff, asset_DefaultHeader_html, asset_len_DefaultHeader_html);
+	//change content of sidebar based on user role
+	//do quick database check for user role
+	//if the role is admin, show admin sidebar,
+	//if the role is user, show logout button,
+	//else show login button because the user is not logedin
+	kore_buf_replace_string(buff, "$sideoptions$", asset_adminoptions_html,
+			asset_len_adminoptions_html);
+	
 	kore_buf_append(buff, content, content_length);
 	kore_buf_append(buff, asset_DefaultFooter_html, asset_len_DefaultFooter_html);
 	
@@ -223,4 +367,10 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	kore_free(data);
 
 	return(KORE_RESULT_OK);
+}
+
+//Validator functions
+int v_admin_validate(struct http_request *req, char *data) {
+	//TODO: Moet nog gemaakt worden, momenteel voor testen admin page
+	return (KORE_RESULT_OK);
 }

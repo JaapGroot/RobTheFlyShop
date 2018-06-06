@@ -11,6 +11,15 @@
 //initialization
 int init(int);
 
+//Macros
+#define SQL_USERS_ID (0)
+#define SQL_USERS_FIRST_NAME (1)
+#define SQL_USERS_LAST_NAME (2)
+#define SQL_USERS_MAIL (3)
+#define SQL_USERS_PASSWORD (4)
+#define SQL_USERS_USER_ROLE (5)
+#define SQL_USERS_ROB_MILES (6)
+
 //serving pages
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
@@ -177,6 +186,98 @@ int serve_adminflight(struct http_request *req) {
 }
 
 int serve_adminmiles(struct http_request *req) {
+	char		*name, *firstName, *lastName, *mail, *sID, *rMiles;
+	struct kore_buf	*buf;
+	u_int8_t	*data;
+	size_t 		len;
+	struct kore_pgsql sql;
+	int		rows, i, uID, success = 0;
+	
+	buf = kore_buf_alloc(64);
+	kore_pgsql_init(&sql);
+
+	kore_buf_append(buf, asset_addMiles_html, asset_len_addMiles_html);
+
+	if(req->method == HTTP_METHOD_GET){
+		//Validate input
+		http_populate_get(req);
+
+		//add the page to the buffer
+	
+		if (http_argument_get_string(req, "lastName", &name)) {
+			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
+		}
+		else {
+			kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+		}
+
+		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+			kore_pgsql_logerror(&sql);
+		}
+		else{
+			char query[150];
+			snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
+			kore_log(LOG_NOTICE, "%s", query);
+		
+			if(!kore_pgsql_query(&sql, query)){
+				kore_pgsql_logerror(&sql);
+			}
+			rows = kore_pgsql_ntuples(&sql);
+			char list[300];
+			for(i=0; i<rows; i++) {
+				uID = atoi(kore_pgsql_getvalue(&sql, i, SQL_USERS_ID));
+				lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
+				firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
+				mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);				
+				kore_log(1, "%d %s %s %s", uID, lastName, firstName, mail);
+				snprintf(list, sizeof(list), "<option value=\"%d\">%s %s %s</option><!--listentry-->", uID, firstName, lastName,
+					mail);
+				kore_log(1, list);	
+				kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			}
+			kore_pgsql_cleanup(&sql);
+
+		}
+
+	}
+	
+	if(req->method == HTTP_METHOD_POST){
+		http_populate_post(req);
+		kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+
+		if (http_argument_get_string(req, "selectUser", &sID) && http_argument_get_string(req, "robMiles", &rMiles)) {
+		kore_log(1, "%s %s", sID, rMiles);
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				kore_pgsql_logerror(&sql);
+			}
+			else{
+				char query[150];
+				snprintf(query, sizeof(query), "UPDATE users SET rob_miles = rob_miles + \'%s\' WHERE user_id = \'%s\'",rMiles, sID);
+				kore_log(LOG_NOTICE, "%s", query);
+		
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
+				}
+				else {	
+					success = 1;
+				}
+				kore_pgsql_cleanup(&sql);
+			}
+		}
+		if (success == 1){
+			kore_buf_append(buf,asset_milesSucces_html,asset_len_milesSucces_html); 
+		}
+		else {
+			kore_buf_append(buf,asset_milesFailed_html,asset_len_milesFailed_html); 
+		
+		}
+		
+	}
+
+	//Serve page
+	data = kore_buf_release(buf, &len);
+	serve_page(req, data, len);
+	kore_free(data);
 	return (KORE_RESULT_OK);
 }
 

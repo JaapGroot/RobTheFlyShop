@@ -35,10 +35,25 @@ extern const u_int32_t asset_len_login_html;
 extern const time_t asset_mtime_login_html;
 extern const char *asset_sha256_login_html;
 int asset_serve_login_html(struct http_request *);
+extern const u_int8_t asset_milesFailed_html[];
+extern const u_int32_t asset_len_milesFailed_html;
+extern const time_t asset_mtime_milesFailed_html;
+extern const char *asset_sha256_milesFailed_html;
+int asset_serve_milesFailed_html(struct http_request *);
+extern const u_int8_t asset_addMiles_html[];
+extern const u_int32_t asset_len_addMiles_html;
+extern const time_t asset_mtime_addMiles_html;
+extern const char *asset_sha256_addMiles_html;
+int asset_serve_addMiles_html(struct http_request *);
 extern const u_int8_t asset_logedin_html[];
 extern const u_int32_t asset_len_logedin_html;
 extern const time_t asset_mtime_logedin_html;
 extern const char *asset_sha256_logedin_html;
 int asset_serve_logedin_html(struct http_request *);
+extern const u_int8_t asset_milesSucces_html[];
+extern const u_int32_t asset_len_milesSucces_html;
+extern const time_t asset_mtime_milesSucces_html;
+extern const char *asset_sha256_milesSucces_html;
+int asset_serve_milesSucces_html(struct http_request *);
 
 #endif

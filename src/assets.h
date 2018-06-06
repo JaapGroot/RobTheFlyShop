@@ -50,5 +50,15 @@ extern const u_int32_t asset_len_flight_listview_html;
 extern const time_t asset_mtime_flight_listview_html;
 extern const char *asset_sha256_flight_listview_html;
 int asset_serve_flight_listview_html(struct http_request *);
+extern const u_int8_t asset_register_html[];
+extern const u_int32_t asset_len_register_html;
+extern const time_t asset_mtime_register_html;
+extern const char *asset_sha256_register_html;
+int asset_serve_register_html(struct http_request *);
+extern const u_int8_t asset_eula_txt[];
+extern const u_int32_t asset_len_eula_txt;
+extern const time_t asset_mtime_eula_txt;
+extern const char *asset_sha256_eula_txt;
+int asset_serve_eula_txt(struct http_request *);
 
 #endif

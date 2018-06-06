@@ -1,3 +1,4 @@
+//includes
 #include <kore/kore.h>
 #include <kore/http.h>
 #include <kore/pgsql.h>
@@ -6,6 +7,12 @@
 #include <stdlib.h>
 
 #include "assets.h"
+
+//macros
+#define SQL_FLIGHT_DESTINATION (3)
+#define SQL_FLIGHT_PRICE (2)
+#define SQL_FLIGHT_DATE (1)
+#define SQL_FLIGHT_NUMBER (0)
 
 //function prototypes
 //initialization
@@ -37,22 +44,49 @@ serve_index(struct http_request *req)
 	struct kore_buf		*buff;
 	u_int8_t		*data;
 	
-	//Init cookie variables and struct
-	char			*cookie_value;
-	//struct http_cookie	*cookie;
-
-	//first cookie implementation
-	http_populate_cookies(req);
-	if(http_request_cookie(req, "Simple", &cookie_value))
-		kore_log(LOG_DEBUG, "Got simple: %s", cookie_value);
-
-	http_response_cookie(req, "Simple", "hello world", req->path, 0, 0, NULL);
-	
 	//Implement buffer for the index
 	buff = kore_buf_alloc(0);
 
-	//add the content you want to the buffer
+	//add the welcome message to the page
 	kore_buf_append(buff, asset_index_html, asset_len_index_html);
+
+	//add the content you want to the buffer
+	//in this case we want the list of flights
+	//create a database query to get all rows with flights
+	struct kore_pgsql sql;
+	char *destination, *date, *price, *number;
+	int rows;
+
+	//connect to db
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+	}
+
+	//query a list of flights
+	if(!kore_pgsql_query(&sql, "SELECT * FROM flight")){
+		kore_pgsql_logerror(&sql);
+	}
+
+	//get the amount of rows returned
+	rows = kore_pgsql_ntuples(&sql);
+
+	//run through each row and add the entry to the buffer
+	for(int i = 0; i < rows; i++){
+		//get the values
+		destination = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DESTINATION);
+		date = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DATE);
+		price = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_PRICE);
+		number = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_NUMBER);
+
+		//add an empty template to the buffer
+		kore_buf_append(buff, asset_flight_listview_html, asset_len_flight_listview_html);
+
+		//add the values to the placeholders
+		kore_buf_replace_string(buff, "$location$", destination, strlen(destination));
+		kore_buf_replace_string(buff, "$price$", price, strlen(price));
+		kore_buf_replace_string(buff, "$date$", date, strlen(date));
+		kore_buf_replace_string(buff, "$flightno$", number, strlen(number));
+	}
 
 	//release the buffer, and get the length
 	data = kore_buf_release(buff, &len);

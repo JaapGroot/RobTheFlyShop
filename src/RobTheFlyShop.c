@@ -185,28 +185,40 @@ int serve_adminflight(struct http_request *req) {
 	return (KORE_RESULT_OK);
 }
 
+//Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
 int serve_adminmiles(struct http_request *req) {
-	char		*name, *firstName, *lastName, *mail, *sID, *rMiles;
-	struct kore_buf	*buf;
-	u_int8_t	*data;
-	size_t 		len;
-	struct kore_pgsql sql;
-	int		rows, i, uID, success = 0;
+	char			*name, *firstName, *lastName, *mail, *sID, *rMiles;
+	struct kore_buf		*buf;
+	u_int8_t		*data;
+	size_t 			len;
+	struct kore_pgsql 	sql;
+	int			rows, i,  success = 0;
 	
+	//Empty all the values, just be sure.
+	name = NULL;
+	firstName = NULL;
+	lastName = NULL;
+	mail = NULL;
+	sID = NULL;
+	rMiles = NULL;
+
+	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(64);
 	kore_pgsql_init(&sql);
 
+	//Add the html to the buffer.
 	kore_buf_append(buf, asset_addMiles_html, asset_len_addMiles_html);
 
+	//If the site gets a get request do this.
 	if(req->method == HTTP_METHOD_GET){
 		//Validate input
 		http_populate_get(req);
-
-		//add the page to the buffer
 	
+		//Get the lastname from the getrequest and change the label to the lastname.
 		if (http_argument_get_string(req, "lastName", &name)) {
 			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
 		}
+		//If failed/no name remove the label.
 		else {
 			kore_buf_replace_string(buf, "$searchName$", NULL, 0);
 		}
@@ -214,7 +226,7 @@ int serve_adminmiles(struct http_request *req) {
 		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 			kore_pgsql_logerror(&sql);
 		}
-		else{
+		else if (name != NULL){
 			char query[150];
 			snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
 			kore_log(LOG_NOTICE, "%s", query);
@@ -225,12 +237,12 @@ int serve_adminmiles(struct http_request *req) {
 			rows = kore_pgsql_ntuples(&sql);
 			char list[300];
 			for(i=0; i<rows; i++) {
-				uID = atoi(kore_pgsql_getvalue(&sql, i, SQL_USERS_ID));
+				sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
 				lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
 				firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
 				mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);				
-				kore_log(1, "%d %s %s %s", uID, lastName, firstName, mail);
-				snprintf(list, sizeof(list), "<option value=\"%d\">%s %s %s</option><!--listentry-->", uID, firstName, lastName,
+				kore_log(1, "%s %s %s %s", sID, lastName, firstName, mail);
+				snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName,
 					mail);
 				kore_log(1, list);	
 				kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));

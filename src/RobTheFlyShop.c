@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "assets.h"
 
@@ -41,12 +42,10 @@ int v_admin_validate(struct http_request *, char *);
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
 //check input from the register page, and give warnings where applicable
-int check_register(struct http_request *, struct core_buf *, char *, char *, char *);
-
+int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char **returnstring);
 //initializes stuff
 int init(int state){
 	//init database
-	//the connection string might be wrong... also make sure to turn on the database server
 	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb"); 
 	return (KORE_RESULT_OK);
 }
@@ -223,7 +222,7 @@ int serve_adminflight(struct http_request *req) {
 
 //Function for serving the register page, along with the logic of registering a user
 int serve_register(struct http_request *req){
-	char *firstName, *lastName, *mail, *password;
+	char *fname, *lname, *mail, *password, *passwordConfirm;
 	//whatever the datatype is for a hash and salt
 	struct kore_buf		*b;
 	u_int8_t 		*d;
@@ -231,6 +230,13 @@ int serve_register(struct http_request *req){
 	struct kore_pgsql	sql;
 	b = kore_buf_alloc(0);
 	kore_buf_append(b, asset_register_html, asset_len_register_html);
+
+	//initialize variables
+	fname = NULL;
+	lname = NULL;
+	mail = NULL;
+	password = NULL;
+	passwordConfirm = NULL;
 	
 	//if the page was called with a get request
 	if(req->method == HTTP_METHOD_GET){
@@ -244,9 +250,62 @@ int serve_register(struct http_request *req){
 		u_int8_t	inputvalid = 1;
 
 		http_populate_post(req);
+		if(!check_register(req, b, "email", "$warning_mail$", &mail)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "fname", "$warning_fname$", &fname)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "lname", "$warning_lname$", &lname)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "agree", "$warning_box$", NULL));
+		//check if passwords match
+		if(!(http_argument_get_string(req, "password", &password) && http_argument_get_string(req, "passwordConfirm", &passwordConfirm))){
+			inputvalid = 0;
+			kore_buf_replace_string(b, "$warning_pass$", (void *)asset_register_warning_html, asset_len_register_warning_html);
+		}else{
+			if(strcmp(password, passwordConfirm)){
+				//if the passwords don't match
+				inputvalid = 0;
+				kore_buf_replace_string(b, "$warning_pass$", (void *)asset_register_warning_html, asset_len_register_warning_html);
+			}else{
+				kore_buf_replace_string(b, "$warning_pass$", NULL ,0);
+			}
+		}
 
-		//check if input is valid
-		//if not, put up warning and set input vallid to 0;
+		kore_log(1, "checking done");
+		//TODO: hash and salt the password
+		//
+		//
+
+		//if input wasn't valid the variable "inputvalid" will be zero, else it will be one
+		//so if input was valid, we can try adding the user to the database, if the user already exists we'll know because the query will fail 
+		//init sql
+		if(inputvalid){
+			kore_pgsql_init(&sql);
+			kore_log(1, "building query");
+			//build the query to see if the user already exists
+			char query[400];
+			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, password);
+			kore_log(1, "Registering user: %s", query);
+
+			//connect to the database
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				kore_pgsql_logerror(&sql);
+			}
+
+			//do the query
+			if(!kore_pgsql_query(&sql, query)){
+				kore_pgsql_logerror(&sql);
+				kore_buf_append(b, asset_userexists_html, asset_len_userexists_html);
+			}else{
+				kore_buf_append(b, asset_register_success_html, asset_len_register_success_html);
+			}
+
+			//cleanup database
+			kore_pgsql_cleanup(&sql);
+		}
 	}
 
 	d = kore_buf_release(b, &len);
@@ -415,12 +474,17 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 }
 
 //function for checking the input on the register page
-int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char *returnstring){
+int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char **returnstring){
 	//get the data
 	//if the data could be gathered remove the tag from the page
 	//else show a warning on the page and set the return string to NULL
-	if(http_argument_get_string(req, checkstring, &returnstring)){
+	if(NULL == returnstring){
+		char *dummy;
+		returnstring = &dummy;
+	}
+	if(http_argument_get_string(req, checkstring, returnstring)){
 		kore_buf_replace_string(b, tag, NULL, 0);
+		kore_log(1, "%s", *returnstring);
 		return 1;
 	}else{
 		kore_buf_replace_string(b, tag, asset_register_warning_html, asset_len_register_warning_html);

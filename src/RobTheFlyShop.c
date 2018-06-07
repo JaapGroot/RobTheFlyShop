@@ -39,6 +39,8 @@ int 		serve_adminaccount(struct http_request *);
 int v_admin_validate(struct http_request *, char *);
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
+//check input from the register page, and give warnings where applicable
+int check_register(struct http_request *, struct core_buf *, char *, char *, char *);
 
 //initializes stuff
 int init(int state){
@@ -363,6 +365,21 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	kore_free(data);
 
 	return(KORE_RESULT_OK);
+}
+
+//function for checking the input on the register page
+int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char *returnstring){
+	//get the data
+	//if the data could be gathered remove the tag from the page
+	//else show a warning on the page and set the return string to NULL
+	if(http_argument_get_string(req, checkstring, &returnstring)){
+		kore_buf_replace_string(b, tag, NULL, 0);
+		return 1;
+	}else{
+		kore_buf_replace_string(b, tag, asset_register_warning_html, asset_len_register_warning_html);
+		returnstring = NULL;
+		return 0;
+	}	
 }
 
 //Validator functions

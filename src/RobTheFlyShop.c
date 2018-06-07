@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "assets.h"
+#include "openssl/sha.h"
 
 //macros
 #define SQL_FLIGHT_DESTINATION (3)
@@ -40,10 +41,19 @@ int 		serve_adminaccount(struct http_request *);
 
 //validator functions
 int v_admin_validate(struct http_request *, char *);
+
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
+
 //check input from the register page, and give warnings where applicable
 int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char **returnstring);
+
+//functions for generating Salt and Hash
+unsigned int 	randomNumber(void);
+void 		generateSalt(void);
+unsigned char* 	hashString(unsigned char* org);
+
+
 //initializes stuff
 int init(int state){
 	//init database
@@ -613,4 +623,51 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 int v_admin_validate(struct http_request *req, char *data) {
 	//TODO: Moet nog gemaakt worden, momenteel voor testen admin page
 	return (KORE_RESULT_OK);
+}
+
+
+//Description: Function that opens /dev/urandom/ and get a random number from it
+//@input: 	void
+//@return: 	unsigned int of a random ten digit number 
+unsigned int randomNumber(void)
+{
+	unsigned int 	randval;
+	FILE 		*f;
+	
+	//open from file /dev/urandom/ and get a 10 digit random number from it.
+	f = fopen("/dev/urandom", "r");
+	fread(&randval, sizeof(randval), 1, f);
+	fclose(f);
+	kore_log(1, "Random Number is: %u",randval);
+	return randval;
+}
+
+
+//Description: 	Function generating a random Salt. For now it doesn't do very much...
+//		other than making a hash. The only problem I have is converting the 
+//		"randomhash" and making it a readable hexstring from it.
+//@input:	nothing, just make the salt for me please...
+//@output:	For now nothing, in the near future a char* of the salt.
+void generateSalt(void)
+{
+	unsigned char	*numberString;
+	unsigned int 	randNumber;
+	int		i;
+	unsigned char	*salt;
+	
+	randNumber = randomNumber();
+	sprintf(numberString, "%u", randNumber);
+	
+	salt = hashString(numberString);
+
+	//return salt;
+}
+
+//Description: hash a string unsing the hashingmethod of SHA256
+//@input: 	unsigned char* of the original string 
+//@output:	unsigned char* of the hashed string
+unsigned char* hashString(unsigned char* org)
+{
+	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
+	return d;
 }

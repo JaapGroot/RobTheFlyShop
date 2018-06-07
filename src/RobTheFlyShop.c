@@ -30,6 +30,7 @@ int init(int);
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
+int		serve_register(struct http_request *);
 int		serve_adminflight(struct http_request *);
 int		serve_adminmiles(struct http_request *);
 int		serve_adminorders(struct http_request *);
@@ -220,9 +221,43 @@ int serve_adminflight(struct http_request *req) {
 	return (KORE_RESULT_OK);
 }
 
+//Function for serving the register page, along with the logic of registering a user
+int serve_register(struct http_request *req){
+	char *firstName, *lastName, *mail, *password;
+	//whatever the datatype is for a hash and salt
+	struct kore_buf		*b;
+	u_int8_t 		*d;
+	size_t			len;
+	struct kore_pgsql	sql;
+	b = kore_buf_alloc(0);
+	kore_buf_append(b, asset_register_html, asset_len_register_html);
+	
+	//if the page was called with a get request
+	if(req->method == HTTP_METHOD_GET){
+		//take out all the tags
+		kore_buf_replace_string(b, "$warning_mail$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_fname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_lname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_pass$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_box$", NULL, 0);
+	}else if(req->method == HTTP_METHOD_POST){
+		u_int8_t	inputvalid = 1;
+
+		http_populate_post(req);
+
+		//check if input is valid
+		//if not, put up warning and set input vallid to 0;
+	}
+
+	d = kore_buf_release(b, &len);
+	serve_page(req, d, len);
+	kore_free(d);
+	return(KORE_RESULT_OK);
+}
+
 //Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
 int serve_adminmiles(struct http_request *req) {
-	char			*name, *firstName, *lastName, *mail, *sID, *rMiles;
+	char			*name, *firstName, *lastName, *mail, *sID, *rMiles, query[150];
 	struct kore_buf		*buf;
 	u_int8_t		*data;
 	size_t 			len;
@@ -236,15 +271,16 @@ int serve_adminmiles(struct http_request *req) {
 	mail = NULL;
 	sID = NULL;
 	rMiles = NULL;
+	rows = 0;
 
 	//Buffer to store the HTML code and init the database.
-	buf = kore_buf_alloc(64);
+	buf = kore_buf_alloc(0);
 	kore_pgsql_init(&sql);
 
 	//Add the html to the buffer.
 	kore_buf_append(buf, asset_addMiles_html, asset_len_addMiles_html);
 
-	//If the site gets a get request do this.
+	//If the site gets a get request do this. To find a user in the database.
 	if(req->method == HTTP_METHOD_GET){
 		//Validate input
 		http_populate_get(req);
@@ -253,72 +289,83 @@ int serve_adminmiles(struct http_request *req) {
 		if (http_argument_get_string(req, "lastName", &name)) {
 			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
 		}
-		//If failed/no name remove the label.
+		//If failed/no name, empty the label.
 		else {
 			kore_buf_replace_string(buf, "$searchName$", NULL, 0);
 		}
-
+		//If the DB connection failed, show a error.
 		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 			kore_pgsql_logerror(&sql);
 		}
-		else if (name != NULL){
-			char query[150];
+		//Else check if a name is filled in for the search
+		else if (name != NULL)	{
+			//Save the query in a var. Limit 10, because we don't want more then 10 results.
 			snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
+			//Return on the cmd which query is executed.
 			kore_log(LOG_NOTICE, "%s", query);
-		
+			//If the query failed, show a error.
 			if(!kore_pgsql_query(&sql, query)){
 				kore_pgsql_logerror(&sql);
 			}
-			kore_log(1, "%d", rows);
-			char list[300];
-			for(i=0; i<rows; i++) {
-				sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
-				lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
-				firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
-				mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);				
-				kore_log(1, "%s %s %s %s", sID, lastName, firstName, mail);
-				snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName, mail);
-				kore_log(1, list);	
-				kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			//Else query succesfully executed. 
+			else {	
+			//Get the rows and make a char to create the HTML list. 	
+				rows = kore_pgsql_ntuples(&sql);
+				char list[300];
+				//For the amount of rows.
+				for(i=0; i<rows; i++) {
+					//Put the data from the SQL query in the vars.
+					sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
+					lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
+					firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
+					mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);
+					//Put the results in a string in list.
+					snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName, mail);
+					//Replace listenty with the new list, so it grows.
+					kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+				}
 			}
 		}
+		//Release the database after use.
 		kore_pgsql_cleanup(&sql);
 	}
-	
+	//If it is a POST method. To add the RobMiles
 	if(req->method == HTTP_METHOD_POST){
+		//Get a post request and empty the searchName tag, because we don't need it.
 		http_populate_post(req);
 		kore_buf_replace_string(buf, "$searchName$", NULL, 0);
-
+		//If there is data in both the selectUser and robMiles go on.
 		if (http_argument_get_string(req, "selectUser", &sID) && http_argument_get_string(req, "robMiles", &rMiles)) {
-		kore_log(1, "%s %s", sID, rMiles);
+			//If the database connection is not succesfull.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
 			}
+			//Else it is succesfull.
 			else{
-				char query[150];
+				//Put the new SQL statement in the query. And print the query to check it.
 				snprintf(query, sizeof(query), "UPDATE users SET rob_miles = rob_miles + \'%s\' WHERE user_id = \'%s\'",rMiles, sID);
 				kore_log(LOG_NOTICE, "%s", query);
-		
+				//If the query did not execute succesfull, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);
 				}
+				//Rob Miles succesfull added.
 				else {	
 					success = 1;
 				}
+				//Close db connection
 				kore_pgsql_cleanup(&sql);
 			}
 		}
+		//If succeed, show at the page, otherwise show a fail.
 		if (success == 1){
 			kore_buf_append(buf,asset_milesSucces_html,asset_len_milesSucces_html); 
 		}
 		else {
 			kore_buf_append(buf,asset_milesFailed_html,asset_len_milesFailed_html); 
-		
-		}
-		
+		}	
 	}
-
-	//Serve page
+	//Put the buf in data and serve the page.
 	data = kore_buf_release(buf, &len);
 	serve_page(req, data, len);
 	kore_free(data);

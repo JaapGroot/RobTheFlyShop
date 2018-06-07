@@ -58,7 +58,6 @@ CREATE TABLE users (
 CREATE TABLE users_flight (
   useruser_id    int NOT NULL, 
   flightflight_nr int NOT NULL, 
-  cancelled       bool DEFAULT 'false' NOT NULL,
   paid  bool DEFAULT 'false' NOT NULL,
 	PRIMARY KEY (useruser_id, 
   flightflight_nr));

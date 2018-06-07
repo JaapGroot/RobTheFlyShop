@@ -32,6 +32,7 @@ int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
 int		serve_register(struct http_request *);
+int		serve_eula(struct http_request *);
 int		serve_adminflight(struct http_request *);
 int		serve_adminmiles(struct http_request *);
 int		serve_adminorders(struct http_request *);
@@ -112,6 +113,12 @@ serve_index(struct http_request *req)
 
 	//free the buffer
 	kore_free(data);
+	return (KORE_RESULT_OK);
+}
+
+int
+serve_eula(struct http_request *req){
+	serve_page(req, asset_eula_txt, asset_len_eula_txt);
 	return (KORE_RESULT_OK);
 }
 	

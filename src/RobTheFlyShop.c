@@ -50,14 +50,15 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 
 //functions for generating Salt and Hash
 unsigned int 	randomNumber(void);
-void 		generateSalt(void);
+unsigned char*	generateSalt(void);
 unsigned char* 	hashString(unsigned char* org);
 
 
 //initializes stuff
 int init(int state){
 	//init database
-	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb"); 
+	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
+
 	return (KORE_RESULT_OK);
 }
 
@@ -647,8 +648,8 @@ unsigned int randomNumber(void)
 //		other than making a hash. The only problem I have is converting the 
 //		"randomhash" and making it a readable hexstring from it.
 //@input:	nothing, just make the salt for me please...
-//@output:	For now nothing, in the near future a char* of the salt.
-void generateSalt(void)
+//@output:	Char* of the salt.
+unsigned char* generateSalt(void)
 {
 	unsigned char	*numberString;
 	unsigned int 	randNumber;
@@ -660,7 +661,7 @@ void generateSalt(void)
 	
 	salt = hashString(numberString);
 
-	//return salt;
+	return salt;
 }
 
 //Description: hash a string unsing the hashingmethod of SHA256

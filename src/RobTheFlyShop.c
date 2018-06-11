@@ -223,9 +223,9 @@ int serve_adminflight(struct http_request *req) {
 	int			rows, i,  success = 0;
 
 	//Empty the values
-	fID = 0;
-	fLoc = 0;
-	fDate = 0;
+	fID = NULL;
+	fLoc = NULL;
+	fDate = NULL;
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(0);

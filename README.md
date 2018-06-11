@@ -1,5 +1,5 @@
 Inholland Air webapplication
-codename: RobTheWebShop
+codename: RobTheFlyShop
 (thats just the name, don't actualy rob us)
 
 to use the dbimplement branch make sure to have the database package installed

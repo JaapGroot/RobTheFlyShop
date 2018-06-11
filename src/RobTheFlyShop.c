@@ -5,8 +5,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "assets.h"
+#include "openssl/sha.h"
 
 //macros
 #define SQL_FLIGHT_DESTINATION (3)
@@ -30,6 +32,8 @@ int init(int);
 int		serve_index(struct http_request *);
 int		serve_login(struct http_request *);
 int		serve_logedin(struct http_request *);
+int		serve_register(struct http_request *);
+int		serve_eula(struct http_request *);
 int		serve_adminflight(struct http_request *);
 int		serve_adminmiles(struct http_request *);
 int		serve_adminorders(struct http_request *);
@@ -37,14 +41,24 @@ int 		serve_adminaccount(struct http_request *);
 
 //validator functions
 int v_admin_validate(struct http_request *, char *);
+
 //serve full page
 int serve_page(struct http_request *, u_int8_t *, size_t len);
+
+//check input from the register page, and give warnings where applicable
+int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char **returnstring);
+
+//functions for generating Salt and Hash
+unsigned int 	randomNumber(void);
+unsigned char*	generateSalt(void);
+unsigned char* 	hashString(unsigned char* org);
+
 
 //initializes stuff
 int init(int state){
 	//init database
-	//the connection string might be wrong... also make sure to turn on the database server
-	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb"); 
+	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
+
 	return (KORE_RESULT_OK);
 }
 
@@ -110,6 +124,12 @@ serve_index(struct http_request *req)
 
 	//free the buffer
 	kore_free(data);
+	return (KORE_RESULT_OK);
+}
+
+int
+serve_eula(struct http_request *req){
+	serve_page(req, asset_eula_txt, asset_len_eula_txt);
 	return (KORE_RESULT_OK);
 }
 	
@@ -327,6 +347,100 @@ int serve_adminflight(struct http_request *req) {
 	return (KORE_RESULT_OK);
 }
 
+//Function for serving the register page, along with the logic of registering a user
+int serve_register(struct http_request *req){
+	char *fname, *lname, *mail, *password, *passwordConfirm;
+	//whatever the datatype is for a hash and salt
+	struct kore_buf		*b;
+	u_int8_t 		*d;
+	size_t			len;
+	struct kore_pgsql	sql;
+	b = kore_buf_alloc(0);
+	kore_buf_append(b, asset_register_html, asset_len_register_html);
+
+	//initialize variables
+	fname = NULL;
+	lname = NULL;
+	mail = NULL;
+	password = NULL;
+	passwordConfirm = NULL;
+	
+	//if the page was called with a get request
+	if(req->method == HTTP_METHOD_GET){
+		//take out all the tags
+		kore_buf_replace_string(b, "$warning_mail$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_fname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_lname$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_pass$", NULL, 0);
+		kore_buf_replace_string(b, "$warning_box$", NULL, 0);
+	}else if(req->method == HTTP_METHOD_POST){
+		u_int8_t	inputvalid = 1;
+
+		http_populate_post(req);
+		if(!check_register(req, b, "email", "$warning_mail$", &mail)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "fname", "$warning_fname$", &fname)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "lname", "$warning_lname$", &lname)){
+			inputvalid = 0;
+		}
+		if(!check_register(req, b, "agree", "$warning_box$", NULL));
+		//check if passwords match
+		if(!(http_argument_get_string(req, "password", &password) && http_argument_get_string(req, "passwordConfirm", &passwordConfirm))){
+			inputvalid = 0;
+			kore_buf_replace_string(b, "$warning_pass$", (void *)asset_register_warning_html, asset_len_register_warning_html);
+		}else{
+			if(strcmp(password, passwordConfirm)){
+				//if the passwords don't match
+				inputvalid = 0;
+				kore_buf_replace_string(b, "$warning_pass$", (void *)asset_register_warning_html, asset_len_register_warning_html);
+			}else{
+				kore_buf_replace_string(b, "$warning_pass$", NULL ,0);
+			}
+		}
+
+		kore_log(1, "checking done");
+		//TODO: hash and salt the password
+		//
+		//
+
+		//if input wasn't valid the variable "inputvalid" will be zero, else it will be one
+		//so if input was valid, we can try adding the user to the database, if the user already exists we'll know because the query will fail 
+		//init sql
+		if(inputvalid){
+			kore_pgsql_init(&sql);
+			kore_log(1, "building query");
+			//build the query to see if the user already exists
+			char query[400];
+			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, password);
+			kore_log(1, "Registering user: %s", query);
+
+			//connect to the database
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				kore_pgsql_logerror(&sql);
+			}
+
+			//do the query
+			if(!kore_pgsql_query(&sql, query)){
+				kore_pgsql_logerror(&sql);
+				kore_buf_append(b, asset_userexists_html, asset_len_userexists_html);
+			}else{
+				kore_buf_append(b, asset_register_success_html, asset_len_register_success_html);
+			}
+
+			//cleanup database
+			kore_pgsql_cleanup(&sql);
+		}
+	}
+
+	d = kore_buf_release(b, &len);
+	serve_page(req, d, len);
+	kore_free(d);
+	return(KORE_RESULT_OK);
+}
+
 //Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
 int serve_adminmiles(struct http_request *req) {
 	char			*name, *firstName, *lastName, *mail, *sID, *rMiles, query[150];
@@ -343,6 +457,7 @@ int serve_adminmiles(struct http_request *req) {
 	mail = NULL;
 	sID = NULL;
 	rMiles = NULL;
+	rows = 0;
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(0);
@@ -485,8 +600,75 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	return(KORE_RESULT_OK);
 }
 
+//function for checking the input on the register page
+int check_register(struct http_request *req, struct kore_buf *b, char *checkstring, char *tag, char **returnstring){
+	//get the data
+	//if the data could be gathered remove the tag from the page
+	//else show a warning on the page and set the return string to NULL
+	if(NULL == returnstring){
+		char *dummy;
+		returnstring = &dummy;
+	}
+	if(http_argument_get_string(req, checkstring, returnstring)){
+		kore_buf_replace_string(b, tag, NULL, 0);
+		kore_log(1, "%s", *returnstring);
+		return 1;
+	}else{
+		kore_buf_replace_string(b, tag, asset_register_warning_html, asset_len_register_warning_html);
+		returnstring = NULL;
+		return 0;
+	}	
+}
+
 //Validator functions
 int v_admin_validate(struct http_request *req, char *data) {
 	//TODO: Moet nog gemaakt worden, momenteel voor testen admin page
 	return (KORE_RESULT_OK);
+}
+
+
+//Description: Function that opens /dev/urandom/ and get a random number from it
+//@input: 	void
+//@return: 	unsigned int of a random ten digit number 
+unsigned int randomNumber(void)
+{
+	unsigned int 	randval;
+	FILE 		*f;
+	
+	//open from file /dev/urandom/ and get a 10 digit random number from it.
+	f = fopen("/dev/urandom", "r");
+	fread(&randval, sizeof(randval), 1, f);
+	fclose(f);
+	kore_log(1, "Random Number is: %u",randval);
+	return randval;
+}
+
+
+//Description: 	Function generating a random Salt. For now it doesn't do very much...
+//		other than making a hash. The only problem I have is converting the 
+//		"randomhash" and making it a readable hexstring from it.
+//@input:	nothing, just make the salt for me please...
+//@output:	Char* of the salt.
+unsigned char* generateSalt(void)
+{
+	unsigned char	*numberString;
+	unsigned int 	randNumber;
+	int		i;
+	unsigned char	*salt;
+	
+	randNumber = randomNumber();
+	sprintf(numberString, "%u", randNumber);
+	
+	salt = hashString(numberString);
+
+	return salt;
+}
+
+//Description: hash a string unsing the hashingmethod of SHA256
+//@input: 	unsigned char* of the original string 
+//@output:	unsigned char* of the hashed string
+unsigned char* hashString(unsigned char* org)
+{
+	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
+	return d;
 }

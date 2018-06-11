@@ -457,7 +457,7 @@ int serve_adminmiles(struct http_request *req) {
 	mail = NULL;
 	sID = NULL;
 	rMiles = NULL;
-	rows = 0;
+	rows = NULL;
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(0);

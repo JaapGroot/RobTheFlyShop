@@ -242,18 +242,23 @@ int serve_logedin(struct http_request *req){
 	return (KORE_RESULT_OK);
 }
 
-int serve_adminflight(struct http_request *req) {
+
+//@description Back-end function to cancel a flight
+//Input The http_request of the page
+//Output None
+int serve_admin_cancel_flight(struct http_request *req) {
 	char			*fID, *fLoc, *fDate, query[150];
 	struct kore_buf		*buf;
 	size_t 			len;
 	u_int8_t 		*data;
-	struct kore_pgsql 	sql;
+	struct kore_pgsql 	sql;			
 	int			rows, i,  success = 0;
 
 	//Empty the values
-	fID = NULL;
-	fLoc = NULL;
-	fDate = NULL;
+	fID = NULL;		//fID(flight ID) is the ID of the flight
+	fLoc = NULL;		//fLoc(flight location) is the location of the flight
+	fDate = NULL;		//fDate(flight date)
+	rows = NULL;		//Rows that are returned from the query
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(0);
@@ -267,57 +272,59 @@ int serve_adminflight(struct http_request *req) {
 		//Validate input
 		http_populate_get(req);
 	
-		//Get the flight location from the getrequest and change the label to the location.
-		if (http_argument_get_string(req, "flightLoc", &fLoc)){
-			kore_buf_replace_string(buf, "$searchFlightLoc$", fLoc, strlen(fLoc));
-		}
-		//If failed/no name, empty the label.
-		else {
+		//Check if an argument is given.
+		if (!http_argument_get_string(req, "flightLoc", &fLoc)){
 			kore_buf_replace_string(buf, "$searchFlightLoc$", NULL, 0);
 		}
-		//If the DB connection failed, show a error.
-		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
-			kore_pgsql_logerror(&sql);
-		}
-		//Else check if location is filled in for the search
-		else if (fLoc != NULL)	{
-			//Save the query in a var. Limit 10, because we don't want more then 10 results and only the last 10 results.
-			snprintf(query, sizeof(query), "SELECT * FROM flight WHERE location LIKE \'%%%s%%\' AND cancelled = 'f'  ORDER BY flight_date DESC LIMIT 10",fLoc);
-			//Return on the cmd which query is executed.
-			kore_log(LOG_NOTICE, "%s", query);
-			//If the query failed, show a error.
-			if(!kore_pgsql_query(&sql, query)){
+		//An value is given, so continue.
+		else {
+			kore_buf_replace_string(buf, "$searchFlightLoc$", fLoc, strlen(fLoc));
+		
+			//If the DB connection failed, show a error.
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
 			}
-			//Else query succesfully executed. 
-			else {	
-			//Get the rows and make a char to create the HTML list. 	
-				rows = kore_pgsql_ntuples(&sql);
-				char list[300];
-				//For the amount of rows.
-				for(i=0; i<rows; i++) {
-					//Put the data from the SQL query in the vars.
-					fID = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_NUMBER);
-					fLoc = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DESTINATION);
-					fDate = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DATE);
-					//Put the results in a string in list.
-					snprintf(list, sizeof(list), "<option value=\"%s\">%s %s</option><!--listentry-->", fID, fLoc, fDate);
-					//Replace listenty with the new list, so it grows.
-					kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			else{	
+				//Save the query in a var. Limit 10, because we don't want more then 10 results and only the last 10 results.
+				snprintf(query, sizeof(query), "SELECT * FROM flight WHERE location LIKE \'%%%s%%\' AND cancelled = 'f'  ORDER BY flight_date DESC LIMIT 10",fLoc);
+				//Return on the cmd which query is executed.
+				kore_log(LOG_NOTICE, "%s", query);
+				//If the query failed, show a error.
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
+				}
+				//Else query succesfully executed. 
+				else {	
+				//Get the rows and make a char to create the HTML list. 	
+					rows = kore_pgsql_ntuples(&sql);
+					char list[300];
+					//For the amount of rows.
+					for(i=0; i<rows; i++) {
+						//Put the data from the SQL query in the vars.
+						fID = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_NUMBER);
+						fLoc = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DESTINATION);
+						fDate = kore_pgsql_getvalue(&sql, i, SQL_FLIGHT_DATE);
+						//Put the results in a string in list.
+						snprintf(list, sizeof(list), "<option value=\"%s\">%s %s</option><!--listentry-->", fID, fLoc, fDate);
+						//Replace listenty with the new list, so it grows.
+						kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+					}
 				}
 			}
+			//Release the database after use.
+			kore_pgsql_cleanup(&sql);
 		}
-		//Release the database after use.
-		kore_pgsql_cleanup(&sql);
 	}
-
 	//If it is a POST method. To cancell the flight
 	if(req->method == HTTP_METHOD_POST){
 		//Get a post request and empty the searcFlightLoc tag, because we don't need it.
 		http_populate_post(req);
-		kore_buf_replace_string(buf, "$searchFlightLoc$", NULL, 0);
-		//If there is data in the selectFlight go on.
-		if (http_argument_get_string(req, "selectFlight", &fID)) {
+		
+		//Check if a flight is selected.
+		if (!http_argument_get_string(req, "selectFlight", &fID)) {
+			kore_buf_replace_string(buf, "$searchFlightLoc$", NULL, 0);
+		}
+		else {
 			//If the database connection is not succesfull.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
@@ -335,10 +342,11 @@ int serve_adminflight(struct http_request *req) {
 				else {	
 					success = 1;
 				}
-				//Close db connection
-				kore_pgsql_cleanup(&sql);
 			}
-		}
+			//Close db connection
+			kore_pgsql_cleanup(&sql);
+		}	
+		
 		//If succeed, show at the page, otherwise show a fail.
 		if (success == 1){
 			kore_buf_append(buf,asset_cancelSucces_html,asset_len_cancelSucces_html); 
@@ -466,8 +474,10 @@ int serve_register(struct http_request *req){
 	return(KORE_RESULT_OK);
 }
 
-//Back-end function to ADD RobMiles to a user. Returns a OK if finished, request the site.
-int serve_adminmiles(struct http_request *req) {
+//@description Back-end function to ADD RobMiles to a user.
+//Input http request from the site
+//Output none
+int serve_admin_add_miles(struct http_request *req) {
 	char			*name, *firstName, *lastName, *mail, *sID, *rMiles, query[150];
 	struct kore_buf		*buf;
 	u_int8_t		*data;
@@ -476,13 +486,12 @@ int serve_adminmiles(struct http_request *req) {
 	int			rows, i,  success = 0;
 	
 	//Empty all the values, just be sure.
-	name = NULL;
-	firstName = NULL;
-	lastName = NULL;
-	mail = NULL;
-	sID = NULL;
-	rMiles = NULL;
-	rows = NULL;
+	name = NULL;		//Name searched with the get request.
+	firstName = NULL;	//First name from the searched user
+	lastName = NULL;	//Last name from the searched user
+	mail = NULL;		//Mail from the searched user
+	sID = NULL;		//sID(stringID) from the searched user
+	rMiles = NULL;		//rMiles(Rob Miles) Miles to add to the user
 
 	//Buffer to store the HTML code and init the database.
 	buf = kore_buf_alloc(0);
@@ -496,57 +505,59 @@ int serve_adminmiles(struct http_request *req) {
 		//Validate input
 		http_populate_get(req);
 	
-		//Get the lastname from the getrequest and change the label to the lastname.
-		if (http_argument_get_string(req, "lastName", &name)) {
-			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
-		}
-		//If failed/no name, empty the label.
-		else {
+		//Check if last name is filled in.
+		if (!http_argument_get_string(req, "lastName", &name)) {
 			kore_buf_replace_string(buf, "$searchName$", NULL, 0);
 		}
-		//If the DB connection failed, show a error.
-		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
-			kore_pgsql_logerror(&sql);
-		}
-		//Else check if a name is filled in for the search
-		else if (name != NULL)	{
-			//Save the query in a var. Limit 10, because we don't want more then 10 results.
-			snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
-			//Return on the cmd which query is executed.
-			kore_log(LOG_NOTICE, "%s", query);
-			//If the query failed, show a error.
-			if(!kore_pgsql_query(&sql, query)){
+		//If filled in, continue.
+		else {
+			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
+			//If the DB connection failed, show a error.
+			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
 			}
-			//Else query succesfully executed. 
-			else {	
-			//Get the rows and make a char to create the HTML list. 	
-				rows = kore_pgsql_ntuples(&sql);
-				char list[300];
-				//For the amount of rows.
-				for(i=0; i<rows; i++) {
-					//Put the data from the SQL query in the vars.
-					sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
-					lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
-					firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
-					mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);
-					//Put the results in a string in list.
-					snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName, mail);
-					//Replace listenty with the new list, so it grows.
-					kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+			else {
+				//Save the query in a var. Limit 10, because we don't want more then 10 results.
+				snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
+				//Return on the cmd which query is executed.
+				kore_log(LOG_NOTICE, "%s", query);
+				//If the query failed, show a error.
+				if(!kore_pgsql_query(&sql, query)){
+					kore_pgsql_logerror(&sql);
 				}
+				//Else query succesfully executed. 
+				else {	
+				//Get the rows and make a char to create the HTML list. 	
+					rows = kore_pgsql_ntuples(&sql);
+					char list[300];
+					//For the amount of rows.
+					for(i=0; i<rows; i++) {
+						//Put the data from the SQL query in the vars.
+						sID = kore_pgsql_getvalue(&sql, i, SQL_USERS_ID);
+						lastName = kore_pgsql_getvalue(&sql, i, SQL_USERS_LAST_NAME);
+						firstName = kore_pgsql_getvalue(&sql, i, SQL_USERS_FIRST_NAME);
+						mail = kore_pgsql_getvalue(&sql, i, SQL_USERS_MAIL);
+						//Put the results in a string in list.
+						snprintf(list, sizeof(list), "<option value=\"%s\">%s %s %s</option><!--listentry-->", sID, firstName, lastName, mail);
+						//Replace listenty with the new list, so it grows.
+						kore_buf_replace_string(buf, "<!--listentry-->", list, strlen(list));
+					}
+				}
+				//Release the database after use.
+				kore_pgsql_cleanup(&sql);
 			}
 		}
-		//Release the database after use.
-		kore_pgsql_cleanup(&sql);
-	}
+	}	
 	//If it is a POST method. To add the RobMiles
 	if(req->method == HTTP_METHOD_POST){
 		//Get a post request and empty the searchName tag, because we don't need it.
 		http_populate_post(req);
-		kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+		
 		//If there is data in both the selectUser and robMiles go on.
-		if (http_argument_get_string(req, "selectUser", &sID) && http_argument_get_string(req, "robMiles", &rMiles)) {
+		if (!(http_argument_get_string(req, "selectUser", &sID) && http_argument_get_string(req, "robMiles", &rMiles))) {
+		kore_buf_replace_string(buf, "$searchName$", NULL, 0);
+		}
+		else{
 			//If the database connection is not succesfull.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
@@ -564,9 +575,9 @@ int serve_adminmiles(struct http_request *req) {
 				else {	
 					success = 1;
 				}
-				//Close db connection
-				kore_pgsql_cleanup(&sql);
 			}
+			//Close db connection
+			kore_pgsql_cleanup(&sql);
 		}
 		//If succeed, show at the page, otherwise show a fail.
 		if (success == 1){

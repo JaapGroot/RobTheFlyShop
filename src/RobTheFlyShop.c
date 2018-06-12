@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <syslog.h>
+
 #include "assets.h"
 #include "openssl/sha.h"
 
@@ -56,6 +58,8 @@ unsigned char* 	hashString(unsigned char* org);
 
 //initializes stuff
 int init(int state){
+	// init logger
+	openlog("RobTheFlyShop", 0, LOG_USER);
 	//init database
 	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
 
@@ -143,7 +147,10 @@ serve_login(struct http_request *req)
 	size_t			len;
 	char			*mail, *pass;
 	int			UserId = 0;
-
+	
+	//small test
+	syslog(LOG_INFO, "%s", "RobTheFlyShop");
+	
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
 

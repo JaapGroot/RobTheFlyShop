@@ -1,0 +1,5 @@
+Follow this file to be able to log RobTheFlyShop
+
+if $programname == "RobTheFlyShop" and $msg contains "RobTheFlyShop" then /var/log/programname.log
+
+

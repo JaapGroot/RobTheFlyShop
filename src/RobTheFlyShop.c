@@ -28,8 +28,13 @@
 //use hashsalt->hash to get the hash
 //use hashsalt->salt to get the salt
 struct hashsalt {
-	char hash[40];
-	char salt[40];
+	union{
+		char HS[81];
+	struct{
+		char hash[40];
+		char salt[41];
+	}
+	}
 };
 
 
@@ -61,7 +66,8 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 unsigned int 	randomNumber(void);
 unsigned char*	generateSalt(void);
 char* 	hashString(unsigned char* org);
-char*	hashPassword(unsigned char* pass, unsigned char* salt);
+char*	hashWsalt(unsigned char* pass, unsigned char* salt);
+struct hashsalt	generateNewPass(unsigned char* pass);
 
 //initializes stuff
 int init(int state){
@@ -358,7 +364,7 @@ int serve_adminflight(struct http_request *req) {
 //Function for serving the register page, along with the logic of registering a user
 int serve_register(struct http_request *req){
 	char *fname, *lname, *mail, *password, *passwordConfirm;
-	struct hashsalt *hs;	
+	struct hashsalt 	hs;	
 	struct kore_buf		*b;
 	u_int8_t 		*d;
 	size_t			len;
@@ -372,7 +378,6 @@ int serve_register(struct http_request *req){
 	mail = NULL;
 	password = NULL;
 	passwordConfirm = NULL;
-	hs = NULL;
 	
 	//if the page was called with a get request
 	if(req->method == HTTP_METHOD_GET){
@@ -414,28 +419,15 @@ int serve_register(struct http_request *req){
 		
 		//if input wasn't valid the variable "inputvalid" will be zero, else it will be one
 		//so if input was valid, we can try adding the user to the database, if the user already exists we'll know because the query will fail 
-		//init sql
 		if(inputvalid){
 			//hash and salt the password
-			//get a random salt
-			kore_log(1, "genning salt");
-			unsigned char *salty = generateSalt();
-			kore_log(1, "genned salt: %s", salty);
-			//strncpy(hs->salt, salty, 20);	
-			//hs->salt = generateSalt();
-		
-			//generate hash
-			kore_log(1, "genning hash");
-			//snprintf(hs->hash, sizeof(20), hashPassword(password, hs->salt));
-			//hs->hash = hashPassword(password, hs->salt);
-			
-
-
+			hs = generateNewPass(password);
+			kore_log(1, "THIS THINGY WORKS THO");	
+			//init the database
 			kore_pgsql_init(&sql);
-			kore_log(1, "building query");
 			//build the query to see if the user already exists
 			char query[400];
-			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, hs);
+			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, hs.HS);
 			kore_log(1, "Registering user: %s", query);
 
 			//connect to the database
@@ -660,7 +652,6 @@ unsigned int randomNumber(void)
 	f = fopen("/dev/urandom", "r");
 	fread(&randval, sizeof(randval), 1, f);
 	fclose(f);
-	kore_log(1, "Generated RNG: %u",randval);
 	return randval;
 }
 
@@ -681,7 +672,6 @@ unsigned char* generateSalt(void)
 	sprintf(numberString, "%u", randNumber);
 	
 	salt = hashString(numberString);
-	kore_log(1, "Generated Salt: %s", salt);
 	return salt;
 }
 
@@ -692,9 +682,6 @@ char* hashString(unsigned char* org)
 {
 	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
-	static unsigned char hash[21];
-	strncpy(hash, d, 20);
-	hash[20] = "\0";
 
 	//change the hash into a hex string
 	static char hexstring[41];
@@ -705,23 +692,22 @@ char* hashString(unsigned char* org)
 		snprintf(hexvalue, 3, "%02x", *(d+i));
 		strcat(hexstring, hexvalue);
 	}
-	kore_log(1, "Generated Hash: %s",hexstring);
 	return hexstring;
 }
 
 //Description: hash password using the plaintext password and the salt
-//@input:	unsigned char* of the password, unsigned char* of the salt
-//@output:	unsigned char* of the hashed password
-char*	hashPassword(unsigned char* pass, unsigned char* salt){
-	unsigned char	*hashed;
+//@input:	char* of the password, unsigned char* of the salt
+//@output:	char* of the hashed password
+char*	hashWsalt(unsigned char* pass, unsigned char* salt){
+	static char	*hashed;
 	struct kore_buf *combinedstrings;
-	unsigned char	*data;
+	char	*	data;
 	size_t		len;
 
 	//allocate the combinedstrings buffer;
 	combinedstrings = kore_buf_alloc(20);
 	//add the salt to the buffer
-	kore_buf_append(combinedstrings, salt, 20);
+	kore_buf_append(combinedstrings, salt, 41);
 	//add the password to the buffer
 	kore_buf_append(combinedstrings, pass, strlen(pass));
 	//the salt and the password are now combined
@@ -729,7 +715,25 @@ char*	hashPassword(unsigned char* pass, unsigned char* salt){
 	//hash the salt and password
 	hashed = hashString(data);
 	//clean up the buffer
-	kore_buf_free(data);
+	kore_free(data);
 	//return the hash
 	return hashed;
 }
+
+//function that generates new password
+//@input: char* of password
+//@output: hashsalt struct, with hashed password + salt used
+struct hashsalt	generateNewPass(unsigned char* pass){
+	//alloc a hashsalt struct
+	struct hashsalt hs;
+	//DO NOT remove this log, else it will not work for some arcane reason...
+	kore_log(1, NULL);
+	//add a new salt to the struct
+	strcpy(hs.salt, generateSalt());
+	//generate the hash with teh salt
+	memcpy(hs.hash, hashWsalt(pass, hs.salt), 40);
+	
+	//return the struct
+	return hs;
+}
+

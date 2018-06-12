@@ -673,6 +673,23 @@ int serve_account_info(struct http_request *req) {
 }
 
 
+int serve_change_info(struct http_request *req) {
+	struct kore_buf		*buf;
+	u_int8_t		*data;
+	size_t 			len;
+	struct kore_pgsql	sql;
+	int			rows;
+
+	buf = kore_buf_alloc(0);
+
+	kore_buf_append(buf, asset_editInfo_html, asset_len_editInfo_html);
+
+	data = kore_buf_release(buf, &len);
+	serve_page(req, data, len);
+	kore_free(data);
+	return (KORE_RESULT_OK);
+}
+
 //serve page
 //this function takes a buffer containting the content of the page and sends an http_response for the full page
 int serve_page(struct http_request *req, u_int8_t *content, size_t content_length){

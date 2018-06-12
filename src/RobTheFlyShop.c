@@ -284,7 +284,7 @@ int serve_admin_cancel_flight(struct http_request *req) {
 				}
 			}
 			//Release the database after use.
-		kore_pgsql_cleanup(&sql);
+			kore_pgsql_cleanup(&sql);
 		}
 	}
 	//If it is a POST method. To cancell the flight
@@ -436,8 +436,8 @@ int serve_admin_add_miles(struct http_request *req) {
 				else {	
 					success = 1;
 				}
-				//Close db connection
 			}
+			//Close db connection
 			kore_pgsql_cleanup(&sql);
 		}
 		//If succeed, show at the page, otherwise show a fail.

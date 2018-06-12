@@ -28,8 +28,8 @@
 //use hashsalt->hash to get the hash
 //use hashsalt->salt to get the salt
 struct hashsalt {
-	unsigned char hash[20];
-	unsigned char salt[20];
+	char hash[40];
+	char salt[40];
 };
 
 
@@ -60,8 +60,8 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 //functions for generating Salt and Hash
 unsigned int 	randomNumber(void);
 unsigned char*	generateSalt(void);
-unsigned char* 	hashString(unsigned char* org);
-unsigned char*	hashPassword(unsigned char* pass, unsigned char* salt);
+char* 	hashString(unsigned char* org);
+char*	hashPassword(unsigned char* pass, unsigned char* salt);
 
 //initializes stuff
 int init(int state){
@@ -419,13 +419,9 @@ int serve_register(struct http_request *req){
 			//hash and salt the password
 			//get a random salt
 			kore_log(1, "genning salt");
-			//snprintf(hs->salt, 20, "%s", generateSalt());
 			unsigned char *salty = generateSalt();
 			kore_log(1, "genned salt: %s", salty);
-			unsigned char buffer[25];
-			memcpy(buffer, salty, 20);
-			kore_log(1, "salt genned");
-			//strncpy(&(hs->salt), salty, 20);	
+			//strncpy(hs->salt, salty, 20);	
 			//hs->salt = generateSalt();
 		
 			//generate hash
@@ -664,7 +660,7 @@ unsigned int randomNumber(void)
 	f = fopen("/dev/urandom", "r");
 	fread(&randval, sizeof(randval), 1, f);
 	fclose(f);
-	kore_log(1, "Random Number is: %u",randval);
+	kore_log(1, "Generated RNG: %u",randval);
 	return randval;
 }
 
@@ -685,27 +681,38 @@ unsigned char* generateSalt(void)
 	sprintf(numberString, "%u", randNumber);
 	
 	salt = hashString(numberString);
-	kore_log(1, "salty salt: %s", salt);
+	kore_log(1, "Generated Salt: %s", salt);
 	return salt;
 }
 
 //Description: hash a string unsing the hashingmethod of SHA256
 //@input: 	unsigned char* of the original string 
 //@output:	unsigned char* of the hashed string
-unsigned char* hashString(unsigned char* org)
+char* hashString(unsigned char* org)
 {
+	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
 	static unsigned char hash[21];
 	strncpy(hash, d, 20);
 	hash[20] = "\0";
-	kore_log(1, "hash: %s",hash);
-	return hash;
+
+	//change the hash into a hex string
+	static char hexstring[41];
+	char hexvalue[3];
+	snprintf(hexvalue, 3, "%02x", *d);
+	strcpy(hexstring, hexvalue);
+	for(int i = 1; i < 20; i++){
+		snprintf(hexvalue, 3, "%02x", *(d+i));
+		strcat(hexstring, hexvalue);
+	}
+	kore_log(1, "Generated Hash: %s",hexstring);
+	return hexstring;
 }
 
 //Description: hash password using the plaintext password and the salt
 //@input:	unsigned char* of the password, unsigned char* of the salt
 //@output:	unsigned char* of the hashed password
-unsigned char*	hashPassword(unsigned char* pass, unsigned char* salt){
+char*	hashPassword(unsigned char* pass, unsigned char* salt){
 	unsigned char	*hashed;
 	struct kore_buf *combinedstrings;
 	unsigned char	*data;

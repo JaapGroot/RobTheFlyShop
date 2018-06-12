@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "assets.h"
 #include "openssl/sha.h"
@@ -65,8 +66,9 @@ char*	hashPassword(unsigned char* pass, unsigned char* salt);
 
 
 //functions for cookie chechink and generating
-//PUT FUNCTIONS HERE
-
+unsigned int	getUIDFromCookie(struct http_request *req);
+int		serveCookie(struct http_request *req, char *value, int uid);
+int		getRoleFromUID(unsigned int uid);
 
 //initializes stuff
 int init(int state){
@@ -222,9 +224,7 @@ serve_login(struct http_request *req)
 	if(success){
 		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
-		kore_log(1, "%s", salt);
-		http_response_cookie(req, "session_id", salt, req->path, time(NULL) + (1*60*10), 0, NULL);
-		
+		int 				i = serveCookie(req, salt, UserId);
 		//the user id should be stored in UserId
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
 
@@ -750,3 +750,46 @@ char*	hashPassword(unsigned char* pass, unsigned char* salt){
 	//return the hash
 	return hashed;
 }
+
+//Description:
+//@input:
+//@output
+unsigned int getUIDFromCookie(struct http_request *req){
+
+	return 1;
+}
+
+//Description:
+//@input:
+//@output
+int serveCookie(struct http_request *req, char *value, int uid){
+	struct 		kore_pgsql sql;
+	char		query[300];
+
+	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*1), 0, NULL);
+	
+	kore_log(1, "push cookie to user");
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+	}
+
+	kore_log(1, "make connection with DB");
+	snprintf(query, sizeof(query), "INSERT INTO session(user_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', \'2018-06-12 15:30:00\', 0)", uid, value);
+	kore_log(1, "%s", query);
+	
+	if(!kore_pgsql_query(&sql, query)){
+		kore_pgsql_logerror(&sql);
+	}
+	kore_log(1, "push salt to DB");
+	return 1;
+}
+
+//Description:
+//@input:
+//@output
+int getRoleFromUID(unsigned int uid){
+
+	return 1;
+}
+
+

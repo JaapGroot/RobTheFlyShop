@@ -138,4 +138,6 @@ INSERT INTO users_flight (useruser_id, flightflight_nr) VALUES ('1', '1');
 
 
 
+#insert session salt to DB 
+INSERT INTO session(user_id, session_id, expire_date, login_tries) VALUES('1', '2186085eff66c8afab86e5e125768df9f383feed', '2018-06-12 15:30:00', 0)
 

@@ -703,10 +703,6 @@ char* hashString(unsigned char* org)
 {
 	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
-<<<<<<< HEAD
-=======
-
->>>>>>> registerhash
 	//change the hash into a hex string
 	static char hexstring[41];
 	char hexvalue[3];

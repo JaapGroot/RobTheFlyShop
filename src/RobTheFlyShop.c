@@ -765,16 +765,17 @@ unsigned int getUIDFromCookie(struct http_request *req){
 int serveCookie(struct http_request *req, char *value, int uid){
 	struct 		kore_pgsql sql;
 	char		query[300];
-
-	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*1), 0, NULL);
+	time_t		timeString = time(NULL) + (1*60*60);
+	kore_log(1, "%lu", timeString);
+	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
 	
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
 	}
-
+	
 	kore_log(1, "make connection with DB");
-	snprintf(query, sizeof(query), "INSERT INTO session(user_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', \'2018-06-12 15:30:00\', 0)", uid, value);
+	snprintf(query, sizeof(query), "INSERT INTO session(usersuser_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', to_timestamp(%lu), 0)", uid, value, timeString);
 	kore_log(1, "%s", query);
 	
 	if(!kore_pgsql_query(&sql, query)){

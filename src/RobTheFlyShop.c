@@ -216,7 +216,10 @@ serve_login(struct http_request *req)
 	//if login was successful
 	if(success){
 		//TODO: give a cookie to the user
-	
+		unsigned char			*salt = generateSalt();
+		//kore_log(1, "%s", salt);
+		//http_response_cookie(req, "session_id", salt, req->path, time(NULL) + (1*60*10), 0, NULL);
+		
 		//the user id should be stored in UserId
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
 
@@ -683,13 +686,14 @@ unsigned int randomNumber(void)
 //@output:	Char* of the salt.
 unsigned char* generateSalt(void)
 {
-	unsigned char	*numberString;
+	unsigned char	numberString[10];
 	unsigned int 	randNumber;
 	int		i;
 	unsigned char	*salt;
 	
 	randNumber = randomNumber();
-	sprintf(numberString, "%u", randNumber);
+	
+	snprintf(numberString, sizeof(numberString),  "%u", randNumber);
 	
 	salt = hashString(numberString);
 	kore_log(1, "Generated Salt: %s", salt);
@@ -703,10 +707,6 @@ char* hashString(unsigned char* org)
 {
 	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
-	static unsigned char hash[21];
-	strncpy(hash, d, 20);
-	hash[20] = "\0";
-
 	//change the hash into a hex string
 	static char hexstring[41];
 	char hexvalue[3];

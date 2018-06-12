@@ -63,6 +63,11 @@ unsigned char*	generateSalt(void);
 char* 	hashString(unsigned char* org);
 char*	hashPassword(unsigned char* pass, unsigned char* salt);
 
+
+//functions for cookie chechink and generating
+//PUT FUNCTIONS HERE
+
+
 //initializes stuff
 int init(int state){
 	//init database
@@ -217,14 +222,15 @@ serve_login(struct http_request *req)
 	if(success){
 		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
-		//kore_log(1, "%s", salt);
-		//http_response_cookie(req, "session_id", salt, req->path, time(NULL) + (1*60*10), 0, NULL);
+		kore_log(1, "%s", salt);
+		http_response_cookie(req, "session_id", salt, req->path, time(NULL) + (1*60*10), 0, NULL);
 		
 		//the user id should be stored in UserId
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
 
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
+
 	}else{
 		//seve the normal page again
 		kore_buf_append(b, asset_login_html, asset_len_login_html);

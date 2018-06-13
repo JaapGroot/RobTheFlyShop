@@ -712,6 +712,7 @@ char* hashString(unsigned char* org)
 		snprintf(hexvalue, 3, "%02x", *(d+i));
 		strcat(hexstring, hexvalue);
 	}
+	hexstring[40] = '\0';
 	return hexstring;
 }
 
@@ -720,22 +721,15 @@ char* hashString(unsigned char* org)
 //@output:	char* of the hashed password
 char*	hashWsalt(unsigned char* pass, unsigned char* salt){
 	static char	*hashed;
-	struct kore_buf *combinedstrings;
 	char	*	data;
 	size_t		len;
+	char		combinedstrings[80];
 
-	//allocate the combinedstrings buffer;
-	combinedstrings = kore_buf_alloc(20);
-	//add the salt to the buffer
-	kore_buf_append(combinedstrings, salt, 41);
-	//add the password to the buffer
-	kore_buf_append(combinedstrings, pass, strlen(pass));
-	//the salt and the password are now combined
-	data = kore_buf_release(combinedstrings, &len);
+	//concatinate the salt ant the password	
+	strcpy(combinedstrings, salt);
+	strcat(combinedstrings, pass);
 	//hash the salt and password
-	hashed = hashString(data);
-	//clean up the buffer
-	kore_free(data);
+	hashed = hashString(combinedstrings);
 	//return the hash
 	return hashed;
 }
@@ -746,8 +740,6 @@ char*	hashWsalt(unsigned char* pass, unsigned char* salt){
 struct hashsalt	generateNewPass(unsigned char* pass){
 	//alloc a hashsalt struct
 	struct hashsalt hs;
-	//DO NOT remove this log, else it will not work for some arcane reason...
-	kore_log(1, NULL);
 	//add a new salt to the struct
 	strcpy(hs.salt, generateSalt());
 	//generate the hash with teh salt

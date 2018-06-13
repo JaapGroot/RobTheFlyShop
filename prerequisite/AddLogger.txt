@@ -1,5 +1,33 @@
 Follow this file to be able to log RobTheFlyShop
 
-if $programname == "RobTheFlyShop" and $msg contains "RobTheFlyShop" then /var/log/programname.log
+- Go to the "etc" directory where rsyslog.conf is placed:
+cd /etc/
 
+- Open rsyslog with an editior:
+vim rsyslog.conf
 
+- Add the following lines: 
+#### RobTheFlyShop logs
+# debug log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_DEBUG" then /var/log/RobTheFlyShopLog/debug.log
+# info log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_INFO" then /var/log/RobTheFlyShopLog/info.log
+# notice log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_NOTICE" then /var/log/RobTheFlyShopLog/notice.log
+# warning log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_WARNING" then /var/log/RobTheFlyShopLog/warning.log
+# error log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_ERR" then /var/log/RobTheFlyShopLog/error.log
+# critical log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_CRIT" then /var/log/RobTheFlyShopLog/critical.log
+# alert log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_ALERT" then /var/log/RobTheFlyShopLog/alert.log
+# emergency log
+if $programname == "RobTheFlyShop" and $msg contains "LOG_EMERG" then /var/log/RobTheFlyShopLog/emergency.log
+# unkown priority log 
+if $programname == "RobTheFlyShop" and $msg contains "UNKOWN_PRIORITY" then /var/log/RobTheFlyShopLog/unkown.log
+
+- Save the file and exit editor:
+
+- restart rsyslog service: 
+service rsyslog restart

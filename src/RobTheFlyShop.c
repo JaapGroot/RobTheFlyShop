@@ -444,7 +444,6 @@ int serve_register(struct http_request *req){
 			}
 		}
 
-		kore_log(1, "checking done");
 		
 		//if input wasn't valid the variable "inputvalid" will be zero, else it will be one
 		//so if input was valid, we can try adding the user to the database, if the user already exists we'll know because the query will fail 
@@ -655,7 +654,6 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 	}
 	if(http_argument_get_string(req, checkstring, returnstring)){
 		kore_buf_replace_string(b, tag, NULL, 0);
-		kore_log(1, "%s", *returnstring);
 		return 1;
 	}else{
 		kore_buf_replace_string(b, tag, asset_register_warning_html, asset_len_register_warning_html);
@@ -696,8 +694,7 @@ char* generateSalt(void)
 {
 	unsigned char	numberString[10];
 	unsigned int 	randNumber;
-	int		i;
-	unsigned char	*salt;
+	char	*salt;
 	
 	randNumber = randomNumber();
 	
@@ -732,8 +729,6 @@ char* hashString(char* org)
 //@output:	char* of the hashed password
 char*	hashWsalt(char* pass, char* salt){
 	static char	*hashed;
-	char	*	data;
-	size_t		len;
 	char		combinedstrings[80];
 
 	//concatinate the salt ant the password	
@@ -766,10 +761,8 @@ struct hashsalt	generateNewPass(char* pass){
 int checkPass(struct hashsalt hs, char* pass){
 	//hash the password with the old salt
 	if(!memcmp(hs.hash, hashWsalt(pass, hs.salt), 40)){
-		kore_log(1, "CSI voice: Thats a 100%% match!");
 		return(KORE_RESULT_OK);
 	}else{
-		kore_log(1, "no match");
 		return(KORE_RESULT_ERROR);
 	}
 }

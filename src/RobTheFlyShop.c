@@ -288,7 +288,7 @@ own_log("LOG_UNKOWN","%s" ,"unkown");
 	if(success){
 		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
-		int 				i = serveCookie(req, salt, UserId), uid = getUIDFromCookie(req);
+		int 				i = serveCookie(req, salt, UserId);
 		
 		//the user id should be stored in UserId
 		
@@ -1093,7 +1093,7 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	char		query[300];
 	time_t		timeString = time(NULL) + (1*60*60);
 	
-	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
+	http_response_cookie(req, "session_id", value, "/", timeString, 0, NULL);
 	kore_pgsql_init(&sql);
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){

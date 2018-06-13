@@ -90,6 +90,22 @@ int init(int state){
 	openlog("RobTheFlyShop", 0, LOG_USER);
 	//init database
 	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
+
+	//remove the active sessions from the database
+	struct kore_pgsql sql;
+	//connect to db
+	kore_pgsql_init(&sql);
+
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+	}
+	//delete all sessions
+	if(!kore_pgsql_query(&sql, "DELETE FROM session")){
+		kore_pgsql_logerror(&sql);
+	}
+	//clean up the sql
+	kore_pgsql_cleanup(&sql);
+	
 	return (KORE_RESULT_OK);
 }
 

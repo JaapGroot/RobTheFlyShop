@@ -613,13 +613,13 @@ int serve_adminorders(struct http_request *req) {
 //Input the http request.
 //output none
 int serve_account_info(struct http_request *req) {
-	char			*uID, *fName, *lName, *mail, *rMiles, query[150];
+	char			*fName, *lName, *mail, *rMiles, query[150];
 	struct kore_buf		*buf;
 	u_int8_t		*data;
 	size_t 			len;
 	struct kore_pgsql	sql;
-	int			rows;
-	
+	int			rows, uID;
+
 	//Clear all the vars of data.
 	fName = NULL;
 	lName = NULL;
@@ -628,12 +628,14 @@ int serve_account_info(struct http_request *req) {
 	uID = NULL;
 
 	//TODO Get the uID from the cookie now this is hardcoded for testing.
-	uID = "3";
+	
+	uID = getUIDFromCookie(req);
+//	kore_log(1,"The user ID is: %d", uID);	
+	//uID = "3";
 
 	buf = kore_buf_alloc(0);
 	kore_pgsql_init(&sql);
 	
-	//TODO show empty page with error if no uID is given in the cookie
 	//Add the html to the buffer.
 	if(uID == NULL) {
 		kore_buf_append(buf, asset_infoPageFail_html, asset_len_infoPageFail_html);
@@ -641,12 +643,12 @@ int serve_account_info(struct http_request *req) {
 	}	
 	else {
 		kore_buf_append(buf, asset_infoPage_html, asset_len_infoPage_html);
-
+	
 		if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 			kore_pgsql_logerror(&sql);
 		}			
 		else{
-			snprintf(query, sizeof(query), "SELECT * FROM users WHERE user_id = \'%s\'",uID);
+			snprintf(query, sizeof(query), "SELECT * FROM users WHERE user_id = \'%d\'",uID);
 			//Return on the cmd which query is executed.
 			kore_log(LOG_NOTICE, "%s", query);
 			//If the query failed, show a error.
@@ -1047,7 +1049,7 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	char		query[300];
 	time_t		timeString = time(NULL) + (1*60*60);
 	
-	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
+	http_response_cookie(req, "session_id", value, "/", time(NULL) + (1*60*10), 0, NULL);
 	kore_pgsql_init(&sql);
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){

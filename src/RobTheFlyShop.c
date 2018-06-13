@@ -772,9 +772,9 @@ unsigned int getUIDFromCookie(struct http_request *req){
 	return 1;
 }
 
-//Description:
-//@input:
-//@output
+//Description:	Function to serve sessioncookie, with a session_id within the cookie
+//@input:	http_request pointer value of the cookie (salt) and the userid
+//@output	return succes integer
 int serveCookie(struct http_request *req, char *value, int uid){
 	struct 		kore_pgsql sql;
 	char		query[300];
@@ -785,6 +785,7 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
+		return 0;
 	}
 	
 	kore_log(1, "make connection with DB");
@@ -793,14 +794,16 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	
 	if(!kore_pgsql_query(&sql, query)){
 		kore_pgsql_logerror(&sql);
+		return 0;
 	}
 	kore_log(1, "push salt to DB");
+	kore_pgsql_cleanup(&sql);
 	return 1;
 }
 
 //Description:
 //@input:
-//@output
+//@output:
 int getRoleFromUID(unsigned int uid){
 
 	return 1;

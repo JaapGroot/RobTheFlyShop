@@ -74,6 +74,7 @@ char* 		hashString(char* org);
 char*		hashWsalt(char* pass, char* salt);
 struct hashsalt generateNewPass(char* pass);
 int		checkPass(struct hashsalt hs, char* pass);
+int 		deleteSession(struct http_request *req);
 
 //functions for cookie chechink and generating
 unsigned int	getUIDFromCookie(struct http_request *req);
@@ -1129,6 +1130,33 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	kore_pgsql_cleanup(&sql);
 	return 1;
 }
+
+//Description
+//@input:
+//@output:
+int deleteSession(struct http_request *req)
+{
+	struct 		kore_request sql;
+	char		query[300];
+	time_t		oldTime = time(NULL) - (1*60*60*24*365);
+
+	http_response_cookie(req, "session_id", value, "/", oldTime, 0, NULL);
+	kore_pgsql_init(&sql);
+
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		return 0;
+	}
+
+	if(!kore_pgsql_query(&sql, "DELETE FROM session")){
+		kore_pgsql_logerror(&sql);
+		return 0;
+	}
+	kore_pgsql_cleanup(&sql);
+	return 1;
+}
+
+
 
 //Description:
 //@input:

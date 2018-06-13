@@ -729,11 +729,11 @@ int serve_account_info(struct http_request *req) {
 //output none
 int serve_change_info(struct http_request *req) {
 	struct kore_buf		*buf;
-	char			*uID, *mail, *fName, *lName, *passOld, *passNew, *passConf, query[150], add[25];
+	char			*mail, *fName, *lName, *passOld, *passNew, *passConf, query[150], add[25];
 	u_int8_t		*data;
 	size_t 			len;
 	struct kore_pgsql	sql;
-	int			rows, succes = 0;
+	int			rows, succes = 0, uID;
 	struct hashsalt		hs;
 
 	//Clear those vars Rob
@@ -753,8 +753,7 @@ int serve_change_info(struct http_request *req) {
 	kore_buf_append(buf, asset_editInfo_html, asset_len_editInfo_html);
 
 	//TODO get ID from the cookie so know which data to change
-	uID = "4";
-
+	uID = getUIDFromCookie(req);
 	//If it is a POST method. To add the RobMiles
 	if(req->method == HTTP_METHOD_POST){
 		//Get a post request and empty the searchName tag, because we don't need it.
@@ -774,7 +773,7 @@ int serve_change_info(struct http_request *req) {
 			//Old pw is given so continue.
 			else {
 				//Get the old pw of the database.
-				snprintf(query, sizeof(query), "SELECT password FROM users WHERE user_id = \'%s\'",uID);
+				snprintf(query, sizeof(query), "SELECT password FROM users WHERE user_id = \'%d\'",uID);
 				//Return on the cmd which query is executed.
 				kore_log(LOG_NOTICE, "%s", query);
 				//If the query failed, show a error.
@@ -796,7 +795,7 @@ int serve_change_info(struct http_request *req) {
 
 						//If an email argument is given change it.
 						if (http_argument_get_string(req, "email", &mail)) {
-							snprintf(query, sizeof(query), "UPDATE users SET mail = \'%s\' WHERE user_id = \'%s\'", mail, uID);
+							snprintf(query, sizeof(query), "UPDATE users SET mail = \'%s\' WHERE user_id = \'%d\'", mail, uID);
 							//Return on the cmd which query is executed.
 							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
@@ -810,7 +809,7 @@ int serve_change_info(struct http_request *req) {
 						}
 						//If a name argument is given change it.
 						if (http_argument_get_string(req, "fname", &fName)) {
-							snprintf(query, sizeof(query), "UPDATE users SET first_name = \'%s\' WHERE user_id = \'%s\'", fName, uID);
+							snprintf(query, sizeof(query), "UPDATE users SET first_name = \'%s\' WHERE user_id = \'%d\'", fName, uID);
 							//Return on the cmd which query is executed.
 							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
@@ -824,7 +823,7 @@ int serve_change_info(struct http_request *req) {
 						}
 						//If a lastname argument is given change it.
 						if (http_argument_get_string(req, "lname", &lName)) {
-							snprintf(query, sizeof(query), "UPDATE users SET last_name = \'%s\' WHERE user_id = \'%s\'", lName, uID);
+							snprintf(query, sizeof(query), "UPDATE users SET last_name = \'%s\' WHERE user_id = \'%d\'", lName, uID);
 							//Return on the cmd which query is executed.
 							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
@@ -843,7 +842,7 @@ int serve_change_info(struct http_request *req) {
 							//If new and conf are the same and new and old are not the same change it.
 							if((strcmp(passNew, passConf) == 0) && !checkPass(hs, passNew)){
 								hs = generateNewPass(passNew);
-								snprintf(query, sizeof(query), "UPDATE users SET password = \'%s\' WHERE user_id = \'%s\'", hs.HS, uID);
+								snprintf(query, sizeof(query), "UPDATE users SET password = \'%s\' WHERE user_id = \'%d\'", hs.HS, uID);
 								//Return on the cmd which query is executed.
 								kore_log(LOG_NOTICE, "%s", query);
 								//If the query failed, show a error.

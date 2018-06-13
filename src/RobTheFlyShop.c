@@ -8,6 +8,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <syslog.h>
+
 #include "assets.h"
 #include "openssl/sha.h"
 
@@ -78,6 +80,8 @@ int		getRoleFromUID(unsigned int uid);
 
 //initializes stuff
 int init(int state){
+	// init logger
+	openlog("RobTheFlyShop", 0, LOG_USER);
 	//init database
 	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
 	return (KORE_RESULT_OK);
@@ -164,7 +168,10 @@ serve_login(struct http_request *req)
 	size_t			len;
 	char			*mail, *pass;
 	int			UserId = 0;
-
+	
+	//small test
+	syslog(LOG_INFO, "%s", "RobTheFlyShop");
+	
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
 

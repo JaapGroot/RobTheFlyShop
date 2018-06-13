@@ -67,11 +67,11 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 
 //functions for generating Salt and Hash
 unsigned int 	randomNumber(void);
-unsigned char*	generateSalt(void);
-char* 	hashString(unsigned char* org);
-char*	hashWsalt(unsigned char* pass, unsigned char* salt);
-struct hashsalt	generateNewPass(unsigned char* pass);
-
+char*		generateSalt(void);
+char* 		hashString(char* org);
+char*		hashWsalt(char* pass, char* salt);
+struct hashsalt generateNewPass(char* pass);
+int		checkPass(struct hashsalt hs, char* pass);
 
 //functions for cookie chechink and generating
 unsigned int	getUIDFromCookie(struct http_request *req);
@@ -191,6 +191,7 @@ serve_login(struct http_request *req)
 			//reserve some variables
 			struct kore_pgsql sql;
 			int rows;
+			struct hashsalt hs;
 			
 			//init the database
 			kore_pgsql_init(&sql);
@@ -205,7 +206,7 @@ serve_login(struct http_request *req)
 			//if we did connect you'll be sent to the page that tells you youre logged in
 				//build query
 				char query[100];
-				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\' AND password=\'%s\'", mail, pass); 
+				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\'", mail); 
 
 				kore_log(LOG_NOTICE, "%s", query);
 				//preform the query
@@ -218,8 +219,12 @@ serve_login(struct http_request *req)
 				kore_log(LOG_NOTICE, "rows: %i", rows);
 				if(rows == 1){
 					//set the user id from the database
-					UserId = atoi(kore_pgsql_getvalue(&sql, 0, 0));
+					UserId = atoi(kore_pgsql_getvalue(&sql, 0, SQL_USERS_ID));
+					strcpy(hs.HS, kore_pgsql_getvalue(&sql, 0, SQL_USERS_PASSWORD));
+					//check if the password matches the hash
+					if(checkPass(hs, pass)){
 					success = 1;
+					}
 				}
 			}
 
@@ -446,7 +451,6 @@ int serve_register(struct http_request *req){
 		if(inputvalid){
 			//hash and salt the password
 			hs = generateNewPass(password);
-			kore_log(1, "THIS THINGY WORKS THO");	
 			//init the database
 			kore_pgsql_init(&sql);
 			//build the query to see if the user already exists
@@ -688,7 +692,7 @@ unsigned int randomNumber(void)
 //		"randomhash" and making it a readable hexstring from it.
 //@input:	nothing, just make the salt for me please...
 //@output:	Char* of the salt.
-unsigned char* generateSalt(void)
+char* generateSalt(void)
 {
 	unsigned char	numberString[10];
 	unsigned int 	randNumber;
@@ -706,7 +710,7 @@ unsigned char* generateSalt(void)
 //Description: hash a string unsing the hashingmethod of SHA256
 //@input: 	unsigned char* of the original string 
 //@output:	unsigned char* of the hashed string
-char* hashString(unsigned char* org)
+char* hashString(char* org)
 {
 	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
@@ -726,7 +730,7 @@ char* hashString(unsigned char* org)
 //Description: hash password using the plaintext password and the salt
 //@input:	char* of the password, unsigned char* of the salt
 //@output:	char* of the hashed password
-char*	hashWsalt(unsigned char* pass, unsigned char* salt){
+char*	hashWsalt(char* pass, char* salt){
 	static char	*hashed;
 	char	*	data;
 	size_t		len;
@@ -744,7 +748,7 @@ char*	hashWsalt(unsigned char* pass, unsigned char* salt){
 //function that generates new password
 //@input: char* of password
 //@output: hashsalt struct, with hashed password + salt used
-struct hashsalt	generateNewPass(unsigned char* pass){
+struct hashsalt	generateNewPass(char* pass){
 	//alloc a hashsalt struct
 	struct hashsalt hs;
 	//add a new salt to the struct
@@ -754,6 +758,20 @@ struct hashsalt	generateNewPass(unsigned char* pass){
 	
 	//return the struct
 	return hs;
+}
+
+//function that takes a plaintext password, and compares it to the hash from the database
+//@input: hashsalt struct to compare to
+//@input: char * to password
+int checkPass(struct hashsalt hs, char* pass){
+	//hash the password with the old salt
+	if(!memcmp(hs.hash, hashWsalt(pass, hs.salt), 40)){
+		kore_log(1, "CSI voice: Thats a 100%% match!");
+		return(KORE_RESULT_OK);
+	}else{
+		kore_log(1, "no match");
+		return(KORE_RESULT_ERROR);
+	}
 }
 
 //Description:
@@ -797,7 +815,3 @@ int getRoleFromUID(unsigned int uid){
 
 	return 1;
 }
-
-
-
-

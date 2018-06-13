@@ -1,0 +1,17 @@
+	<h2>Change your user credentials.</h2>
+	<p>Fill in the box you want to change. To submit you must fill in your old password</p>
+	<form action="/change_info" method="post">
+		Email address:<br>
+		<input type="email" name="email"><br><br>
+		First name:<br>
+		<input type="text" name="fname"><br><br>
+		Last name:<br>
+		<input type="text" name="lname"><br><br>
+		Old Password:<!--$NoPassWarn$--><br>
+		<input type="password" name="passwordOld"><br><br>
+		New Password:<br>
+		<input type="password" name="passwordnew"><br><br>
+		Confirm password:<br>
+		<input type="password" name="passwordConfirm"><br><br>
+		<input type="submit" value="Push new data">
+	</form>

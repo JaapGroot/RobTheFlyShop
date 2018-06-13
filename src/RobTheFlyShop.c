@@ -237,13 +237,16 @@ serve_login(struct http_request *req)
 	if(success){
 		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
-		int 				i = serveCookie(req, salt, UserId);
+		int 				i = serveCookie(req, salt, UserId), uid = getUIDFromCookie(req);
+		
 		//the user id should be stored in UserId
+		
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
-
+		
+		kore_log(LOG_NOTICE, "UID from cookie of user: %i", uid);
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
-
+		
 	}else{
 		//seve the normal page again
 		kore_buf_append(b, asset_login_html, asset_len_login_html);
@@ -764,24 +767,62 @@ struct hashsalt	generateNewPass(unsigned char* pass){
 	return hs;
 }
 
-//Description:
-//@input:
-//@output
+//Description:	Get session ID from user and request the User ID from DB
+//@input:	http_request struct
+//@output	unsigned int User ID
 unsigned int getUIDFromCookie(struct http_request *req){
+	struct		kore_pgsql sql;
+	char		*sessionId;
+	unsigned int	uid;
+	char		query[150];
+	int 		rows, i;
 
-	return 1;
+	http_populate_cookies(req);
+	kore_pgsql_init(&sql);
+
+	if (http_request_cookie(req, "session_id", &sessionId))
+	{
+		kore_log(LOG_DEBUG, "SessionID: %s", sessionId);
+	}
+	
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		return 0;
+	}
+
+	
+	kore_log(1, "make connection with DB");
+	snprintf(query, sizeof(query), "SELECT usersuser_id FROM session WHERE session_id = \'%s\'", sessionId);
+	kore_log(1, "%s", query);
+	
+	if(!kore_pgsql_query(&sql, query)){
+		kore_pgsql_logerror(&sql);
+		return 0;
+	}
+
+	rows = kore_pgsql_ntuples(&sql);
+
+	for(i = 0; i < rows; i++)
+	{
+		uid = atoi(kore_pgsql_getvalue(&sql, i, 0));
+		kore_log(LOG_NOTICE, "uid: %d", uid);
+	}
+	kore_pgsql_cleanup(&sql);
+
+	return uid;
 }
 
-//Description:	Function to serve sessioncookie, with a session_id within the cookie
+//Description:	Function to serve sessioncookie, with a session_id within the cookie and has a lifespan
+//		of one hour. 
 //@input:	http_request pointer value of the cookie (salt) and the userid
 //@output	return succes integer
 int serveCookie(struct http_request *req, char *value, int uid){
 	struct 		kore_pgsql sql;
 	char		query[300];
 	time_t		timeString = time(NULL) + (1*60*60);
-	kore_log(1, "%lu", timeString);
-	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
 	
+	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
+	kore_pgsql_init(&sql);
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);

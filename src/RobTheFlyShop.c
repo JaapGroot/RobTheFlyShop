@@ -8,6 +8,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <syslog.h>
+
 #include "assets.h"
 #include "openssl/sha.h"
 
@@ -29,8 +31,13 @@
 //use hashsalt->hash to get the hash
 //use hashsalt->salt to get the salt
 struct hashsalt {
-	char hash[40];
-	char salt[40];
+	union{
+		char HS[81];
+	struct{
+		char hash[40];
+		char salt[41];
+	}
+	}
 };
 
 
@@ -60,10 +67,11 @@ int check_register(struct http_request *req, struct kore_buf *b, char *checkstri
 
 //functions for generating Salt and Hash
 unsigned int 	randomNumber(void);
-unsigned char*	generateSalt(void);
-char* 	hashString(unsigned char* org);
-char*	hashPassword(unsigned char* pass, unsigned char* salt);
-
+char*		generateSalt(void);
+char* 		hashString(char* org);
+char*		hashWsalt(char* pass, char* salt);
+struct hashsalt generateNewPass(char* pass);
+int		checkPass(struct hashsalt hs, char* pass);
 
 //functions for cookie chechink and generating
 unsigned int	getUIDFromCookie(struct http_request *req);
@@ -72,6 +80,8 @@ int		getRoleFromUID(unsigned int uid);
 
 //initializes stuff
 int init(int state){
+	// init logger
+	openlog("RobTheFlyShop", 0, LOG_USER);
 	//init database
 	kore_pgsql_register("DB", "host=localhost user=pgadmin password=root dbname=rtfsdb");
 	return (KORE_RESULT_OK);
@@ -158,7 +168,10 @@ serve_login(struct http_request *req)
 	size_t			len;
 	char			*mail, *pass;
 	int			UserId = 0;
-
+	
+	//small test
+	syslog(LOG_INFO, "%s", "RobTheFlyShop");
+	
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
 
@@ -178,6 +191,7 @@ serve_login(struct http_request *req)
 			//reserve some variables
 			struct kore_pgsql sql;
 			int rows;
+			struct hashsalt hs;
 			
 			//init the database
 			kore_pgsql_init(&sql);
@@ -192,7 +206,7 @@ serve_login(struct http_request *req)
 			//if we did connect you'll be sent to the page that tells you youre logged in
 				//build query
 				char query[100];
-				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\' AND password=\'%s\'", mail, pass); 
+				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\'", mail); 
 
 				kore_log(LOG_NOTICE, "%s", query);
 				//preform the query
@@ -205,8 +219,12 @@ serve_login(struct http_request *req)
 				kore_log(LOG_NOTICE, "rows: %i", rows);
 				if(rows == 1){
 					//set the user id from the database
-					UserId = atoi(kore_pgsql_getvalue(&sql, 0, 0));
+					UserId = atoi(kore_pgsql_getvalue(&sql, 0, SQL_USERS_ID));
+					strcpy(hs.HS, kore_pgsql_getvalue(&sql, 0, SQL_USERS_PASSWORD));
+					//check if the password matches the hash
+					if(checkPass(hs, pass)){
 					success = 1;
+					}
 				}
 			}
 
@@ -376,7 +394,7 @@ int serve_admin_cancel_flight(struct http_request *req) {
 //Function for serving the register page, along with the logic of registering a user
 int serve_register(struct http_request *req){
 	char *fname, *lname, *mail, *password, *passwordConfirm;
-	struct hashsalt *hs;	
+	struct hashsalt 	hs;	
 	struct kore_buf		*b;
 	u_int8_t 		*d;
 	size_t			len;
@@ -390,7 +408,6 @@ int serve_register(struct http_request *req){
 	mail = NULL;
 	password = NULL;
 	passwordConfirm = NULL;
-	hs = NULL;
 	
 	//if the page was called with a get request
 	if(req->method == HTTP_METHOD_GET){
@@ -432,28 +449,14 @@ int serve_register(struct http_request *req){
 		
 		//if input wasn't valid the variable "inputvalid" will be zero, else it will be one
 		//so if input was valid, we can try adding the user to the database, if the user already exists we'll know because the query will fail 
-		//init sql
 		if(inputvalid){
 			//hash and salt the password
-			//get a random salt
-			kore_log(1, "genning salt");
-			unsigned char *salty = generateSalt();
-			kore_log(1, "genned salt: %s", salty);
-			//strncpy(hs->salt, salty, 20);	
-			//hs->salt = generateSalt();
-		
-			//generate hash
-			kore_log(1, "genning hash");
-			//snprintf(hs->hash, sizeof(20), hashPassword(password, hs->salt));
-			//hs->hash = hashPassword(password, hs->salt);
-			
-
-
+			hs = generateNewPass(password);
+			//init the database
 			kore_pgsql_init(&sql);
-			kore_log(1, "building query");
 			//build the query to see if the user already exists
 			char query[400];
-			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, hs);
+			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, hs.HS);
 			kore_log(1, "Registering user: %s", query);
 
 			//connect to the database
@@ -895,7 +898,6 @@ unsigned int randomNumber(void)
 	f = fopen("/dev/urandom", "r");
 	fread(&randval, sizeof(randval), 1, f);
 	fclose(f);
-	kore_log(1, "Generated RNG: %u",randval);
 	return randval;
 }
 
@@ -905,7 +907,7 @@ unsigned int randomNumber(void)
 //		"randomhash" and making it a readable hexstring from it.
 //@input:	nothing, just make the salt for me please...
 //@output:	Char* of the salt.
-unsigned char* generateSalt(void)
+char* generateSalt(void)
 {
 	unsigned char	numberString[10];
 	unsigned int 	randNumber;
@@ -917,14 +919,13 @@ unsigned char* generateSalt(void)
 	snprintf(numberString, sizeof(numberString),  "%u", randNumber);
 	
 	salt = hashString(numberString);
-	kore_log(1, "Generated Salt: %s", salt);
 	return salt;
 }
 
 //Description: hash a string unsing the hashingmethod of SHA256
 //@input: 	unsigned char* of the original string 
 //@output:	unsigned char* of the hashed string
-char* hashString(unsigned char* org)
+char* hashString(char* org)
 {
 	//hash the original string
 	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
@@ -937,33 +938,55 @@ char* hashString(unsigned char* org)
 		snprintf(hexvalue, 3, "%02x", *(d+i));
 		strcat(hexstring, hexvalue);
 	}
-	kore_log(1, "Generated Hash: %s",hexstring);
+	hexstring[40] = '\0';
 	return hexstring;
 }
 
 //Description: hash password using the plaintext password and the salt
-//@input:	unsigned char* of the password, unsigned char* of the salt
-//@output:	unsigned char* of the hashed password
-char*	hashPassword(unsigned char* pass, unsigned char* salt){
-	unsigned char	*hashed;
-	struct kore_buf *combinedstrings;
-	unsigned char	*data;
+//@input:	char* of the password, unsigned char* of the salt
+//@output:	char* of the hashed password
+char*	hashWsalt(char* pass, char* salt){
+	static char	*hashed;
+	char	*	data;
 	size_t		len;
+	char		combinedstrings[80];
 
-	//allocate the combinedstrings buffer;
-	combinedstrings = kore_buf_alloc(20);
-	//add the salt to the buffer
-	kore_buf_append(combinedstrings, salt, 20);
-	//add the password to the buffer
-	kore_buf_append(combinedstrings, pass, strlen(pass));
-	//the salt and the password are now combined
-	data = kore_buf_release(combinedstrings, &len);
+	//concatinate the salt ant the password	
+	strcpy(combinedstrings, salt);
+	strcat(combinedstrings, pass);
 	//hash the salt and password
-	hashed = hashString(data);
-	//clean up the buffer
-	kore_buf_free(data);
+	hashed = hashString(combinedstrings);
 	//return the hash
 	return hashed;
+}
+
+//function that generates new password
+//@input: char* of password
+//@output: hashsalt struct, with hashed password + salt used
+struct hashsalt	generateNewPass(char* pass){
+	//alloc a hashsalt struct
+	struct hashsalt hs;
+	//add a new salt to the struct
+	strcpy(hs.salt, generateSalt());
+	//generate the hash with teh salt
+	memcpy(hs.hash, hashWsalt(pass, hs.salt), 40);
+	
+	//return the struct
+	return hs;
+}
+
+//function that takes a plaintext password, and compares it to the hash from the database
+//@input: hashsalt struct to compare to
+//@input: char * to password
+int checkPass(struct hashsalt hs, char* pass){
+	//hash the password with the old salt
+	if(!memcmp(hs.hash, hashWsalt(pass, hs.salt), 40)){
+		kore_log(1, "CSI voice: Thats a 100%% match!");
+		return(KORE_RESULT_OK);
+	}else{
+		kore_log(1, "no match");
+		return(KORE_RESULT_ERROR);
+	}
 }
 
 //Description:
@@ -980,16 +1003,17 @@ unsigned int getUIDFromCookie(struct http_request *req){
 int serveCookie(struct http_request *req, char *value, int uid){
 	struct 		kore_pgsql sql;
 	char		query[300];
-
-	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*1), 0, NULL);
+	time_t		timeString = time(NULL) + (1*60*60);
+	kore_log(1, "%lu", timeString);
+	http_response_cookie(req, "session_id", value, req->path, time(NULL) + (1*60*10), 0, NULL);
 	
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
 	}
-
+	
 	kore_log(1, "make connection with DB");
-	snprintf(query, sizeof(query), "INSERT INTO session(user_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', \'2018-06-12 15:30:00\', 0)", uid, value);
+	snprintf(query, sizeof(query), "INSERT INTO session(usersuser_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', to_timestamp(%lu), 0)", uid, value, timeString);
 	kore_log(1, "%s", query);
 	
 	if(!kore_pgsql_query(&sql, query)){
@@ -1006,5 +1030,3 @@ int getRoleFromUID(unsigned int uid){
 
 	return 1;
 }
-
-

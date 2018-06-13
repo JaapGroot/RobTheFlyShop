@@ -294,7 +294,6 @@ own_log("LOG_UNKOWN","%s" ,"unkown");
 		
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
 		
-		kore_log(LOG_NOTICE, "UID from cookie of user: %i", uid);
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
 		

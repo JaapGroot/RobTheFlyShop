@@ -685,6 +685,7 @@ int serve_change_info(struct http_request *req) {
 	size_t 			len;
 	struct kore_pgsql	sql;
 	int			rows, succes = 0;
+	struct hashsalt		hs;
 
 	//Clear those vars Rob
 	mail = NULL;		//var for the changed mail
@@ -703,7 +704,7 @@ int serve_change_info(struct http_request *req) {
 	kore_buf_append(buf, asset_editInfo_html, asset_len_editInfo_html);
 
 	//TODO get ID from the cookie so know which data to change
-	uID = "1";
+	uID = "4";
 
 	//If it is a POST method. To add the RobMiles
 	if(req->method == HTTP_METHOD_POST){
@@ -723,10 +724,6 @@ int serve_change_info(struct http_request *req) {
 			}
 			//Old pw is given so continue.
 			else {
-				//You can change data now, so it always succeed.
-				succes = 1;
-				//TODO hash de input voor de password check
-				
 				//Get the old pw of the database.
 				snprintf(query, sizeof(query), "SELECT password FROM users WHERE user_id = \'%s\'",uID);
 				//Return on the cmd which query is executed.
@@ -737,12 +734,17 @@ int serve_change_info(struct http_request *req) {
 				}
 				//Else query succesfully executed. 
 				else {
+					//get the old password from the db
+					strcpy(hs.HS, kore_pgsql_getvalue(&sql, 0, 0));
 					//Check if the submitted pw and pw from the db are the same.
-					if(!(strcmp(kore_pgsql_getvalue(&sql, 0, 0), passOld) == 0)){
+					if(!checkPass(hs, passOld)){
 						kore_buf_replace_string(buf, "<!--$NoPassWarn$-->", "Invalid Password", strlen("Invalid Password"));
 					}
 					//If they are the same continue.
 					else{
+						//You can change data now, so it always succeed.
+						succes = 1;
+
 						//If an email argument is given change it.
 						if (http_argument_get_string(req, "email", &mail)) {
 							snprintf(query, sizeof(query), "UPDATE users SET mail = \'%s\' WHERE user_id = \'%s\'", mail, uID);
@@ -788,10 +790,11 @@ int serve_change_info(struct http_request *req) {
 						}
 						//If new and conf password are given change it.
 						if (http_argument_get_string(req, "passwordConfirm", &passConf)&&http_argument_get_string(req, "passwordnew", &passNew)) {
-							//TODO change new to hashes
+							//Hash the new pass
 							//If new and conf are the same and new and old are not the same change it.
-							if((strcmp(passNew, passConf) == 0) && strcmp(passNew, passOld)!= 0){
-								snprintf(query, sizeof(query), "UPDATE users SET password = \'%s\' WHERE user_id = \'%s\'", passNew, uID);
+							if((strcmp(passNew, passConf) == 0) && !checkPass(hs, passNew)){
+								hs = generateNewPass(passNew);
+								snprintf(query, sizeof(query), "UPDATE users SET password = \'%s\' WHERE user_id = \'%s\'", hs.HS, uID);
 								//Return on the cmd which query is executed.
 								kore_log(LOG_NOTICE, "%s", query);
 								//If the query failed, show a error.
@@ -802,6 +805,11 @@ int serve_change_info(struct http_request *req) {
 								else {
 									strcat(add, "password");
 								}
+							}
+							else{
+								//It failed, because passwords are the same
+								kore_buf_replace_string(buf, "<!--$NoPassWarn$-->", "Old password is the same as new password", strlen("Old password is the same as new password"));
+								strcat(add, "PASSWORD DID NOT CHANGE");
 							}
 						}
 					}

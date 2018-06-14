@@ -1,5 +1,4 @@
 #include "includes.h"
-
 int
 serve_login(struct http_request *req)
 {	
@@ -8,11 +7,16 @@ serve_login(struct http_request *req)
 	struct kore_buf		*b;
 	u_int8_t		*d;
 	size_t			len;
-	char			*mail, *pass;
+	char			*mail, *pass, l[6];
+	unsigned char im[70*200];
+	unsigned char gif[gifsize];
 	int			UserId = 0;
 	
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
+
+	captcha(im,l);
+	write(2,l,5);
 
 	if (req->method == HTTP_METHOD_GET){
 		http_populate_get(req);

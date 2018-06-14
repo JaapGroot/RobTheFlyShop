@@ -12,12 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <fcntl.h>
 
 #include <syslog.h>
 #include <stdarg.h>
 
 #include "assets.h"
 #include "openssl/sha.h"
+#include "libcaptcha.h"
 #include "hash.h"
 #include "sessions.h"
 #include "logging.h"

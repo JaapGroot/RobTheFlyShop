@@ -1,0 +1,17 @@
+	<p>On this page you can view the flights a user has booked.</p>
+	<p>Search for the users and then select the user to show its order.</p>
+	<form action="/admin/orders" method="get">
+		Last name:  
+		<input type="input" name="lastName">
+		<input type="submit" value="Search">
+	</form>
+	<p>Search for last name in database: <!--$searchName$--></p>
+	<form action="/admin/cancel_flight" method="post">
+		Front name, last name and Mail: 
+		<select name="selectFlight">
+			<!--listentry-->
+		</select><br>
+		<input type="submit" value="Search Flights">
+	</form>
+
+

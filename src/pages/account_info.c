@@ -21,7 +21,7 @@ int serve_account_info(struct http_request *req) {
 	//TODO Get the uID from the cookie now this is hardcoded for testing.
 	
 	uID = getUIDFromCookie(req);
-//	kore_log(1,"The user ID is: %d", uID);	
+	//kore_log(1,"The user ID is: %d", uID);	
 	//uID = "3";
 
 	buf = kore_buf_alloc(0);

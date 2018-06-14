@@ -31,11 +31,11 @@ int serve_admin_cancel_flight(struct http_request *req) {
 	
 		//Check if an argument is given.
 		if (!http_argument_get_string(req, "flightLoc", &fLoc)){
-			kore_buf_replace_string(buf, "$searchFlightLoc$", NULL, 0);
+			kore_buf_replace_string(buf, "<!--$searchFlightLoc$-->", NULL, 0);
 		}
 		//An value is given, so continue.
 		else {
-			kore_buf_replace_string(buf, "$searchFlightLoc$", fLoc, strlen(fLoc));
+			kore_buf_replace_string(buf, "<!--$searchFlightLoc$-->", fLoc, strlen(fLoc));
 		
 			//If the DB connection failed, show a error.
 	
@@ -80,7 +80,7 @@ int serve_admin_cancel_flight(struct http_request *req) {
 		
 		//Check if a flight is selected.
 		if (!http_argument_get_string(req, "selectFlight", &fID)) {
-			kore_buf_replace_string(buf, "$searchFlightLoc$", NULL, 0);
+			kore_buf_replace_string(buf, "<!--$searchFlightLoc$-->", NULL, 0);
 		}
 		else {
 			//If the database connection is not succesfull.

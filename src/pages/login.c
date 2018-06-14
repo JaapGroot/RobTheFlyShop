@@ -10,50 +10,7 @@ serve_login(struct http_request *req)
 	size_t			len;
 	char			*mail, *pass;
 	int			UserId = 0;
-	kore_log(LOG_NOTICE, "%s%", "test"); 	
-	//small test
 	
-/*
- * LOG_EMERG
- *
- * system is unusable
- *
- * LOG_ALERT
- *
- * action must be taken immediately
- *
- * LOG_CRIT
- *
- * critical conditions
- *
- * LOG_ERR
- *
- * error conditions
- *
- * LOG_WARNING
- *
- * warning conditions
- *
- * LOG_NOTICE
- *
- * normal, but significant, condition
- *
- * LOG_INFO
- *
- * informational message
- *
- * LOG_DEBUG 
- * 
- * */
-own_log("LOG_DEBUG", "%s", "debug");
-own_log("LOG_INFO","%s" ,"info");  
-own_log("LOG_NOTICE","%s" ,"notice");  
-own_log("LOG_WARNING","%s" ,"warning");  
-own_log("LOG_ERR","%s" ,"err");  
-own_log("LOG_CRIT","%s" ,"critical");  
-own_log("LOG_ALERT","%s" ,"alert");  
-own_log("LOG_EMERG","%s" ,"emer");  
-own_log("LOG_UNKOWN","%s" ,"unkown");  
 	//first allocate the buffer
 	b = kore_buf_alloc(0);
 

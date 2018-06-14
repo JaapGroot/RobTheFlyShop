@@ -52,3 +52,17 @@ int v_generic_validate(struct http_request *req, char *data) {
 		return (KORE_RESULT_ERROR);
 	}
 }
+
+//Description:	Validator
+//@input:	
+//@output:	
+int v_notLogedIn_validate(struct http_request *req, char *data) {
+	if(!v_generic_validate(req, data))
+	{
+		return (KORE_RESULT_OK);
+	}
+	else
+	{
+		return (KORE_RESULT_ERROR);
+	}
+}

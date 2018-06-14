@@ -9,7 +9,10 @@ int serve_admin_add_miles(struct http_request *req) {
 	u_int8_t		*data;
 	size_t 			len;
 	struct kore_pgsql 	sql;
-	int			rows, i,  success = 0;
+	int			rows, i,  success = 0, aID = 0;
+
+	//See who visits the page
+	aID = getUIDFromCookie(req);
 	
 	//Empty all the values, just be sure.
 	name = NULL;		//Name searched with the get request.
@@ -40,15 +43,17 @@ int serve_admin_add_miles(struct http_request *req) {
 			kore_buf_replace_string(buf, "$searchName$", name, strlen(name));
 			//If the DB connection failed, show a error.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+				own_log("LOG_ERR", "%s", "No connection to database on page ADD_MILES");
 				kore_pgsql_logerror(&sql);
 			}
 			else {
 				//Save the query in a var. Limit 10, because we don't want more then 10 results.
 				snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
 				//Return on the cmd which query is executed.
-				kore_log(LOG_NOTICE, "%s", query);
+				own_log("LOG_NOTICE", "User: %d %s %s", aID ,"Query on page ADD_MILES: ",  query);
 				//If the query failed, show a error.
 				if(!kore_pgsql_query(&sql, query)){
+					own_log("LOG_ERR", "User: %d %s",aID, "Failed to execute query on page ADD_MILES");
 					kore_pgsql_logerror(&sql);
 				}
 				//Else query succesfully executed. 
@@ -87,14 +92,16 @@ int serve_admin_add_miles(struct http_request *req) {
 			//If the database connection is not succesfull.
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 				kore_pgsql_logerror(&sql);
+				own_log("LOG_ERR", "%s", "No connection to database on page ADD_MILES");
 			}
 			//Else it is succesfull.
 			else{
 				//Put the new SQL statement in the query. And print the query to check it.
 				snprintf(query, sizeof(query), "UPDATE users SET rob_miles = rob_miles + \'%s\' WHERE user_id = \'%s\'",rMiles, sID);
-				kore_log(LOG_NOTICE, "%s", query);
+				own_log("LOG_NOTICE", "User: %d %s %s", aID ,"Query on page ADD_MILES: ",  query);
 				//If the query did not execute succesfull, show a error.
 				if(!kore_pgsql_query(&sql, query)){
+					own_log("LOG_ERR", "User: %d %s",aID, "Failed to execute query on page ADD_MILES");
 					kore_pgsql_logerror(&sql);
 				}
 				//Rob Miles succesfull added.

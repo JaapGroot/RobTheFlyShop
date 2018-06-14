@@ -4,3 +4,5 @@
 RobTheFlyShop.so
 assets.h
 cert
+*.so
+*.swp

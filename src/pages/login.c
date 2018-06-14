@@ -124,12 +124,14 @@ own_log("LOG_UNKOWN","%s" ,"unkown");
 	if(success){
 		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
-		int 				i = serveCookie(req, salt, UserId);
+		int 				i = serveCookie(req, salt, UserId), role;
 		
 		//the user id should be stored in UserId
 		
 		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
-		
+		role = getRoleFromUID(UserId);
+
+		kore_log(LOG_NOTICE, "%d", role);
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
 		

@@ -66,13 +66,15 @@ ALTER TABLE session ADD CONSTRAINT FKsession FOREIGN KEY (usersuser_id) REFERENC
 ALTER TABLE users_flight ADD CONSTRAINT FKusers_flight FOREIGN KEY (useruser_id) REFERENCES users (user_id);
 ALTER TABLE users_flight ADD CONSTRAINT FKflight_users FOREIGN KEY (flightflight_nr) REFERENCES flight (flight_nr);
 
-INSERT INTO users (first_name, last_name, mail, password) VALUES ('John', 'Doe', 'john@mail.com', '12345678');
-INSERT INTO users (first_name, last_name, mail, password) VALUES ('Marco', 'Water', 'marco@mail.com', '12345678');
-INSERT INTO users (first_name, last_name, mail, password) VALUES ('Kelvin', 'Muller', 'kelvin@mail.com', '12345678');
-
 INSERT INTO flight(flight_date, cost_rob_miles, location) VALUES ('2018-10-16 9:35', '420', 'IRS');
 INSERT INTO flight(flight_date, cost_rob_miles, location) VALUES ('2018-10-16 9:35', '6969', 'Robanus');
 INSERT INTO flight(flight_date, cost_rob_miles, location) VALUES ('2018-10-16 9:35', '2048', 'Robuto');
+
+--DIT NIET DOEN--
+
+INSERT INTO users (first_name, last_name, mail, password) VALUES ('John', 'Doe', 'john@mail.com', '12345678');
+INSERT INTO users (first_name, last_name, mail, password) VALUES ('Marco', 'Water', 'marco@mail.com', '12345678');
+INSERT INTO users (first_name, last_name, mail, password) VALUES ('Kelvin', 'Muller', 'kelvin@mail.com', '12345678');
 
 INSERT INTO users_flight (useruser_id, flightflight_nr) VALUES ('1', '1'); 
 INSERT INTO users_flight (useruser_id, flightflight_nr) VALUES ('1', '3'); 

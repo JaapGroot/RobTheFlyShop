@@ -20,6 +20,7 @@ unsigned int getUIDFromCookie(struct http_request *req){
 	
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 
@@ -30,6 +31,7 @@ unsigned int getUIDFromCookie(struct http_request *req){
 	
 	if(!kore_pgsql_query(&sql, query)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 
@@ -59,6 +61,7 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	kore_log(1, "push cookie to user");
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 	
@@ -68,6 +71,7 @@ int serveCookie(struct http_request *req, char *value, int uid){
 	
 	if(!kore_pgsql_query(&sql, query)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 	kore_log(1, "push salt to DB");
@@ -81,7 +85,6 @@ int serveCookie(struct http_request *req, char *value, int uid){
 int deleteSession(struct http_request *req)
 {
 	struct 		kore_pgsql sql;
-	char		query[300];
 	time_t		oldTime = time(NULL) - (1*60*60*24*365);
 
 	http_response_cookie(req, "session_id", "", "/", oldTime, 0, NULL);
@@ -89,11 +92,13 @@ int deleteSession(struct http_request *req)
 
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 
 	if(!kore_pgsql_query(&sql, "DELETE FROM session")){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 	kore_pgsql_cleanup(&sql);
@@ -114,6 +119,7 @@ int getRoleFromUID(unsigned int uid){
 
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 
@@ -124,6 +130,7 @@ int getRoleFromUID(unsigned int uid){
 	
 	if(!kore_pgsql_query(&sql, query)){
 		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
 

@@ -40,6 +40,10 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	size_t		len;
 	struct kore_buf	*buff;
 	u_int8_t	*data;
+	unsigned int 		uID, role;
+
+	uID = NULL;
+	role = NULL;
 
 	buff = kore_buf_alloc(0);
 
@@ -50,8 +54,29 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	//if the role is admin, show admin sidebar,
 	//if the role is user, show logout button,
 	//else show login button because the user is not logedin
-	kore_buf_replace_string(buff, "$sideoptions$", asset_adminoptions_html,
-			asset_len_adminoptions_html);
+	uID = getUIDFromCookie(req);
+	if(uID != NULL){
+		role = getRoleFromUID(uID);
+		switch(role){
+			case 0:
+				//user
+				kore_buf_replace_string(buff, "$sideoptions$", asset_useroptions_html, asset_len_useroptions_html);
+				break;
+			case 1:
+				//admin
+				kore_buf_replace_string(buff, "$sideoptions$", asset_adminoptions_html, asset_len_adminoptions_html);
+				break;
+
+			default:
+				//something wierd...
+				kore_buf_replace_string(buff, "$sideoptions$", asset_defaultoptions_html, asset_len_defaultoptions_html);
+				own_log(LOG_WARNING, "Someone is using an unrecognized User role, user: %d", uID);
+				deleteSession(req);
+		}
+	}else{
+		//not logged in	
+		kore_buf_replace_string(buff, "$sideoptions$", asset_defaultoptions_html, asset_len_defaultoptions_html);
+	}
 	
 	kore_buf_append(buff, content, content_length);
 	kore_buf_append(buff, asset_DefaultFooter_html, asset_len_DefaultFooter_html);

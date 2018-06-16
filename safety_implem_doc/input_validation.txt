@@ -1,0 +1,40 @@
+Input validatie: 
+
+SQL injection: 
+
+SQL injection is één van de meest voorkomende flaws, gelukkig valt SQL injection goed te bestrijden. 
+Wij hebben de volgende security mechanismes gebruikt om SQL injection uit te sluiten. 
+
+1a. Een whitelist gemaakt van de post parameters . 
+1b. Een whitelist gemaakt voor de karakters.
+2a. Een prepared query. 
+2b. Tot slotte een snprintf om de query te maken. 
+
+
+1a. Een whitelist van de parameters. 
+via een http_populate_post(req); worden de parameters opgestuurd naar de desbetreffende pagina. 
+In de conf/RobTheFlyShop.conf staat het volgende: 
+  params post /login {
+	  validate	Email		v_Email
+	  validate	Password	v_Password
+  }
+Dit betekent dat alleen één mail en één wachtwoord worden geacepteerd bij het post request. 
+Verder betekent dit dat de paramater door een validatie regex gaat of via een functie. 
+In dit geval zijn het twee keer een regex (staan ook in conf/RobTheFlyShop.conf): 
+
+validator	v_Email		regex	^[a-zA-Z0-9.]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$	
+validator	v_Password	regex	^[a-zA-Z0-9.!@#$%^&*]{6,18}$
+
+1a. Met deze expressies whitelisten wij de karakters die in de regex staan. 
+Verder geven wij ook aan dat er maximaal 18 karakters meegestuurd mogen worden, om een buffer overflow te voorkomen. 
+
+
+
+2a. Een prepared query. 
+2b. Tot slotte een snprintf om de query te maken. 
+
+(veilige versie, die ook buffer overflow voorkomt). (http://www.cplusplus.com/reference/cstdio/snprintf/)
+snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\'", mail); 
+
+Dit wordt door de gehele website consitent gebruikt om sql injection te voorkomen. 2x
+

@@ -11,7 +11,7 @@ int v_admin_validate(struct http_request *req, char *data) {
 		return (KORE_RESULT_ERROR);
 	}
 
-	role = getRoleFromUID(req);
+	role = getRoleFromUID(uid);
 	if(role == 1)
 	{
 		return (KORE_RESULT_OK);
@@ -33,7 +33,7 @@ int v_user_validate(struct http_request *req, char *data) {
 		return (KORE_RESULT_ERROR);
 	}
 
-	role = getRoleFromUID(req);
+	role = getRoleFromUID(uid);
 	
 	if(role == 0)
 	{

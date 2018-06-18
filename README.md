@@ -6,7 +6,7 @@ Inholland Air webapplication
 codename: RobTheFlyShop
 (thats just the name, don't actualy rob us)
 
-De webshop is opgebouwd met het kore framework(https://kore.io/).
+De webshop is opgebouwd met het kore framework (https://kore.io/).
 
 Voor het project is het van belang om het kore framework op te zetten.
 (LET OP!) Zorg ervoor dat PGSQL=1 aan de makefile wordt toegevoegd!. 

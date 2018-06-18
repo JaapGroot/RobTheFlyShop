@@ -8,7 +8,7 @@ int v_admin_validate(struct http_request *req, char *data) {
 
 	uid = getUIDFromCookie(req);
 	if(uid == NULL){
-		return (KORE_RESULT_OK);
+		return (KORE_RESULT_ERROR);
 	}
 
 	role = getRoleFromUID(req);
@@ -30,7 +30,7 @@ int v_user_validate(struct http_request *req, char *data) {
 
 	uid = getUIDFromCookie(req);
 	if(uid == NULL){
-		return (KORE_RESULT_OK);
+		return (KORE_RESULT_ERROR);
 	}
 
 	role = getRoleFromUID(req);
@@ -50,7 +50,7 @@ int v_user_validate(struct http_request *req, char *data) {
 //@input:	
 //@output:	
 int v_generic_validate(struct http_request *req, char *data) {
-	if(v_user_validate(req, data) == 1 || v_admin_validate(req, data) == 1)
+	if(v_user_validate(req, data) || v_admin_validate(req, data))
 	{
 		return (KORE_RESULT_OK);
 	}

@@ -32,6 +32,7 @@ serve_login(struct http_request *req)
 			int rows;
 			struct hashsalt hs;
 			
+			kore_log(1, "[login db connection]");	
 			//init the database
 			kore_pgsql_init(&sql);
 

@@ -26,6 +26,8 @@ int serve_register(struct http_request *req){
 	
 	//if the page was called with a get request
 	if(req->method == HTTP_METHOD_GET){
+
+		kore_log(1, "[register page]");
 		//take out all the tags
 		kore_buf_replace_string(b, "$warning_mail$", NULL, 0);
 		kore_buf_replace_string(b, "$warning_fname$", NULL, 0);

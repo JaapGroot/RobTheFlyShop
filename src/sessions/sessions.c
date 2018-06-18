@@ -6,9 +6,11 @@
 unsigned int getUIDFromCookie(struct http_request *req){
 	struct		kore_pgsql sql;
 	char		*sessionId;
-	unsigned int	uid;
+	unsigned int	uid = NULL;
 	char		query[150];
-	int 		rows, i;
+	int 		rows;
+	
+	kore_log(1, "getting uid from cookie <<");
 
 	http_populate_cookies(req);
 	kore_pgsql_init(&sql);
@@ -16,12 +18,16 @@ unsigned int getUIDFromCookie(struct http_request *req){
 	if (http_request_cookie(req, "session_id", &sessionId))
 	{
 		kore_log(LOG_DEBUG, "SessionID: %s", sessionId);
+	}else{
+		kore_log(LOG_DEBUG, "No Session Cookie found");
+		kore_pgsql_cleanup(&sql);
+		return NULL;
 	}
 	
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);
 		kore_pgsql_cleanup(&sql);
-		return 0;
+		return NULL;
 	}
 
 	
@@ -32,18 +38,17 @@ unsigned int getUIDFromCookie(struct http_request *req){
 	if(!kore_pgsql_query(&sql, query)){
 		kore_pgsql_logerror(&sql);
 		kore_pgsql_cleanup(&sql);
-		return 0;
+		return NULL;
 	}
 
 	rows = kore_pgsql_ntuples(&sql);
-
-	for(i = 0; i < rows; i++)
-	{
-		uid = atoi(kore_pgsql_getvalue(&sql, i, 0));
+	kore_log(1, "returned rows: %d", rows);
+	if(rows == 1){
+		uid = atoi(kore_pgsql_getvalue(&sql, 0, 0));
 		kore_log(LOG_NOTICE, "uid: %d", uid);
 	}
 	kore_pgsql_cleanup(&sql);
-
+	kore_log(1, "returing uid: %d", uid);
 	return uid;
 }
 
@@ -86,6 +91,7 @@ int deleteSession(struct http_request *req)
 {
 	struct 		kore_pgsql sql;
 	time_t		oldTime = time(NULL) - (1*60*60*24*365);
+	unsigned int		uid = NULL;
 
 	http_response_cookie(req, "session_id", "", "/", oldTime, 0, NULL);
 	kore_pgsql_init(&sql);
@@ -95,11 +101,17 @@ int deleteSession(struct http_request *req)
 		kore_pgsql_cleanup(&sql);
 		return 0;
 	}
-
-	if(!kore_pgsql_query(&sql, "DELETE FROM session")){
-		kore_pgsql_logerror(&sql);
-		kore_pgsql_cleanup(&sql);
-		return 0;
+	
+	uid = getUIDFromCookie(req);
+	if(uid != NULL){
+		char query[150];
+		snprintf(query, sizeof(query), "DELETE FROM session WHERE usersuser_id = \'%d\'", uid);
+		kore_log(1, "delete query = %s", query);
+		if(!kore_pgsql_query(&sql, "DELETE FROM session WHERE")){
+			kore_pgsql_logerror(&sql);
+			kore_pgsql_cleanup(&sql);
+			return 0;
+		}
 	}
 	kore_pgsql_cleanup(&sql);
 	return 1;
@@ -116,6 +128,8 @@ int getRoleFromUID(unsigned int uid){
 	char		query[300];
 	int 		i, role, rows;
 	kore_pgsql_init(&sql);
+	
+	kore_log(1, "Getting role from UID");
 
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
 		kore_pgsql_logerror(&sql);

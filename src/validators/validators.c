@@ -7,8 +7,11 @@ int v_admin_validate(struct http_request *req, char *data) {
 	unsigned int 	uid, role;
 
 	uid = getUIDFromCookie(req);
+	if(uid == NULL){
+		return (KORE_RESULT_OK);
+	}
+
 	role = getRoleFromUID(req);
-	
 	if(role == 1)
 	{
 		return (KORE_RESULT_OK);
@@ -26,6 +29,10 @@ int v_user_validate(struct http_request *req, char *data) {
 	unsigned int 	uid, role;
 
 	uid = getUIDFromCookie(req);
+	if(uid == NULL){
+		return (KORE_RESULT_OK);
+	}
+
 	role = getRoleFromUID(req);
 	
 	if(role == 0)

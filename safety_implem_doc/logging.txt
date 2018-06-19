@@ -1,0 +1,13 @@
+Logging is gedaan door een wrapper om syslog(3) heen te schrijven "own_log()". 
+
+De prioriteiten van syslog(3) kunnen worden aangehouden. Door string formatting is de security in acht gehouden. 
+own_log("LOG_ERR", "User: %d %s",aID, "Failed to execute query on page ADD_MILES");
+
+Verder wordt de kore_pgsql_logerror gebruikt voor pgsql error's. 
+kore_pgsql_logerror(&sql);
+
+Verder staat in de conf:
+#important for logging the post and gets with ip-adress
+accesslog       /var/log/kore_access.log
+
+Deze log houdt alle requests bij die worden gemaakt naar de shop. 

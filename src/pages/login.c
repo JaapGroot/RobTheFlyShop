@@ -24,15 +24,17 @@ serve_login(struct http_request *req)
 
 		//check if the entry was correct
 		if(http_argument_get_string(req, "Email", &mail) && http_argument_get_string(req, "Password", &pass)){
-			//TODO: add pass salting and stuff
-			//variables are stored at *mail and *pass
-			//
 			//reserve some variables
 			struct kore_pgsql sql;
 			int rows;
 			struct hashsalt hs;
-			
-			kore_log(1, "[login db connection]");	
+			pid_t delaychild_pid;
+
+			//start a child that will exit in 2 seconds
+			char *argv[] = {"delaychild", NULL};
+			posix_spawn(&delaychild_pid, DELAYCHILD_PATH, NULL, NULL, argv, environ);
+			//go on doing our merry thing
+
 			//init the database
 			kore_pgsql_init(&sql);
 
@@ -70,6 +72,9 @@ serve_login(struct http_request *req)
 
 			//interfacing with the database is done, clean up...
 			kore_pgsql_cleanup(&sql);
+			
+			//now we wait for the delay child to finish, and to avvoid brute forces
+			waitpid(delaychild_pid, NULL, 0);
 		}
 		if(!success){
 			//else let the user know they did it wrong
@@ -97,6 +102,7 @@ serve_login(struct http_request *req)
 		//seve the normal page again
 		kore_buf_append(b, asset_login_html, asset_len_login_html);
 	}
+
 	
 	//serve the page.
 	http_response_header(req, "content-type", "text/html");

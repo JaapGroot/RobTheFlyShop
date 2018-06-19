@@ -1,0 +1,1 @@
+Voor ons project gebruiken wij bruteforce protection via captcha. 

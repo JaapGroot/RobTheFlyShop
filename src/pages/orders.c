@@ -48,7 +48,7 @@ serve_orders(struct http_request *req)
 			own_log("LOG_NOTICE", "%s %d %s", "Following query executed on page ORDERS by userid: ", uID, query);
 			//If the query failed, show a error.
 			if(!kore_pgsql_query(&sql, query)){
-				own_log("LOG ERR", "%s", (&sql);
+				own_log("LOG ERR", "%s", (&sql));
 			}
 			//Else query succesfully executed. 
 			else {	

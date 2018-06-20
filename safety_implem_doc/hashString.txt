@@ -1,0 +1,32 @@
+Het hashen van strings in de applicatie wordt gedaan met SHA256 binnen de openssl biliotheek die standaard wordt aangeboden
+binnen onze includes.
+Als input parameter wordt de character pointer meegegeven van de string die moet worden gehasht.
+Deze character pointer wordt in de functie "SHA256" gedaan. Hier moeten de volgende parameters aan worden meegegeven.
+    - De character pointer (gecast naar een unsigned char *),
+    - De lengte van de string.
+
+Na het hashen van de string komt er een character pointer die de hash met een lengte van SHA_DIGEST_LENGHT (20) bevat.
+Om van deze deeg koek te kunnen maken, moet dit worden omgezet in leesbare characters. Dit is nu nog niet van toepassing,
+aangezien de hash nu 20 characters lang is met een waarde tussen 0 en 255. Om dit leesbaar te maken pakken we telkens de
+twee kleinste nibble, bijvoorbeeld, 0X2F. Als dit allemaal in één string wordt gezet, krijgt de hash uiteindelijk 
+een lengte van 40 characters. Om hier een geldige C-string van te maken zetten we een "\0" charcter aan het einde van de string.
+
+//Description: hash a string unsing the hashingmethod of SHA256
+//@input: 	unsigned char* of the original string 
+//@output:	unsigned char* of the hashed string
+char* hashString(char* org)
+{
+	//hash the original string
+	unsigned char	*d = SHA256((const unsigned char*)org, strlen(org), 0);
+	//change the hash into a hex string
+	static char hexstring[41];
+	char hexvalue[3];
+	snprintf(hexvalue, 3, "%02x", *d);
+	strcpy(hexstring, hexvalue);
+	for(int i = 1; i < 20; i++){
+		snprintf(hexvalue, 3, "%02x", *(d+i));
+		strcat(hexstring, hexvalue);
+	}
+	hexstring[40] = '\0';
+	return hexstring;
+}

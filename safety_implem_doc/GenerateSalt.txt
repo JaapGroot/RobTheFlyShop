@@ -1,5 +1,7 @@
-Voor het genereren van de salt, is er gebruik gemaakt van de "randomNumber" functie. Deze functie geeft een willikeurig getal terug met een lengte van 10. Het getal dat terug komt wordt eerst nog naar een string gecast d.m.v. de character array "NumberString". Deze wordt daarna doorgegeven aan de functie hashString. Deze functie wordt nader uitgelegd in hashFunction.
-
+Voor het genereren van de salt, is er gebruik gemaakt van de "randomNumber" functie. Deze functie geeft 
+een willikeurig getal terug met een lengte van 10. Het getal dat terug komt wordt eerst nog naar een string 
+gecast d.m.v. de character array "NumberString". Deze wordt daarna doorgegeven aan de functie hashString. 
+Deze functie wordt nader uitgelegd in hashFunction.
 
 //Description: 	Function generating a random Salt. For now it doesn't do very much...
 //		other than making a hash. The only problem I have is converting the 

@@ -1,0 +1,20 @@
+
+
+//Description: 	Function generating a random Salt. For now it doesn't do very much...
+//		other than making a hash. The only problem I have is converting the 
+//		"randomhash" and making it a readable hexstring from it.
+//@input:	nothing, just make the salt for me please...
+//@output:	Char* of the salt.
+char* generateSalt(void)
+{
+	unsigned char	numberString[10];
+	unsigned int 	randNumber;
+	char	*salt;
+	
+	randNumber = randomNumber();
+	
+	snprintf(numberString, sizeof(numberString),  "%u", randNumber);
+	
+	salt = hashString(numberString);
+	return salt;
+}

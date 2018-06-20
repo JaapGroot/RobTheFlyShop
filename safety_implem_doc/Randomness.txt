@@ -1,0 +1,24 @@
+
+Randomness
+Om te beginnen met salting, de salt moet een random number zijn, hiervoor is de "randomNumber" functie geschreven. 
+
+De willekeurigheid komt van urandom file[1], zoals al aangegeven, de file kan theoretisch niet random zijn wanneer systeem 
+bezig is met opstarten. Dan komt de fread(); waar &randval is een pointer naar een memory waar het getal moet komen te staan, vervolgens komt
+de size die de variable heeft. De '1' is voor het aantal elementen ter grootte van een unsigned integer en 'f' is voor de pointer naar file object dat een stream specificeert.
+
+//Description: Function that opens /dev/urandom/ and get a random number from it
+//@input: 	void
+//@return: 	unsigned int of a random ten digit number 
+unsigned int randomNumber(void)
+{
+	unsigned int 	randval;
+	FILE 		*f;
+	
+	//open from file /dev/urandom/ and get a 10 digit random number from it.
+	f = fopen("/dev/urandom", "r");
+	fread(&randval, sizeof(randval), 1, f);
+	fclose(f);
+	return randval;
+}
+
+[1] https://www.baaten.com/blog/afhankelijk-van-willekeur-devrandom-vs-devurandom/

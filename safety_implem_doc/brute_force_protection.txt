@@ -1,1 +1,4 @@
-Voor ons project gebruiken wij bruteforce protection via captcha. 
+Voor ons project gebruiken wij bruteforce protection doormiddel van de login te vertragen. 
+
+De aanroep van waitpid zorgt ervoor dat de login met 2 sec wordt vertraagd: 
+  waitpid(delaychild_pid, NULL, 0);

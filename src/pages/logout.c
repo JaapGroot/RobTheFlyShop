@@ -9,7 +9,6 @@ int serve_logout(struct http_request *req){
 	buff = kore_buf_alloc(0);
 	kore_buf_append(buff, asset_logout_html, asset_len_logout_html);
 	
-	kore_log(1, "[logout page]");	
 	//delete the session
 	if(deleteSession(req)){
 		//if deletion succeded:

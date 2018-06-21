@@ -50,7 +50,6 @@ serve_login(struct http_request *req)
 				char query[100];
 				snprintf(query, sizeof(query), "SELECT * FROM users WHERE mail=\'%s\'", mail); 
 
-				kore_log(LOG_NOTICE, "%s", query);
 				//preform the query
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);
@@ -58,7 +57,6 @@ serve_login(struct http_request *req)
 
 				//if there were no results the mail or password were incorrect, if there are more then 1 multiple users were selected wich shouldn't happen, so there should only be result if the login is succesful
 				rows = kore_pgsql_ntuples(&sql);
-				kore_log(LOG_NOTICE, "rows: %i", rows);
 				if(rows == 1){
 					//set the user id from the database
 					UserId = atoi(kore_pgsql_getvalue(&sql, 0, SQL_USERS_ID));
@@ -85,16 +83,12 @@ serve_login(struct http_request *req)
 	
 	//if login was successful
 	if(success){
-		//TODO: give a cookie to the user
 		unsigned char			*salt = generateSalt();
 		int 				i = serveCookie(req, salt, UserId), role;
 		
 		//the user id should be stored in UserId
-		
-		kore_log(LOG_NOTICE, "UID of user: %i", UserId);
 		role = getRoleFromUID(UserId);
 
-		kore_log(LOG_NOTICE, "%d", role);
 		//show the user the logedin page
 		kore_buf_append(b, asset_logedin_html, asset_len_logedin_html);
 		

@@ -21,7 +21,6 @@ serve_index(struct http_request *req)
 	struct kore_pgsql sql;
 	char *destination, *date, *price, *number;
 	int rows;
-	kore_log(1, "[insert index connection]");	
 	//connect to db
 	kore_pgsql_init(&sql);
 	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){

@@ -27,7 +27,6 @@ int serve_register(struct http_request *req){
 	//if the page was called with a get request
 	if(req->method == HTTP_METHOD_GET){
 
-		kore_log(1, "[register page]");
 		//take out all the tags
 		kore_buf_replace_string(b, "$warning_mail$", NULL, 0);
 		kore_buf_replace_string(b, "$warning_fname$", NULL, 0);
@@ -73,7 +72,6 @@ int serve_register(struct http_request *req){
 			//build the query to see if the user already exists
 			char query[400];
 			snprintf(query, sizeof(query), "INSERT INTO users (first_name, last_name, mail, password) VALUES(\'%s\', \'%s\', \'%s\', \'%s\')", fname, lname, mail, hs.HS);
-			kore_log(1, "Registering user: %s", query);
 
 			//connect to the database
 			if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){

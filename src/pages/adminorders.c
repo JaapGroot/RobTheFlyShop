@@ -45,7 +45,6 @@ int serve_adminorders(struct http_request *req) {
 				//Save the query in a var. Limit 10, because we don't want more then 10 results.
 				snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
 				//Return on the cmd which query is executed.
-				kore_log(LOG_NOTICE, "%s", query);
 				//If the query failed, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);
@@ -93,7 +92,6 @@ int serve_adminorders(struct http_request *req) {
 				//Put the new SQL statement in the query. And print the query to check it.
 				//snprintf(query, sizeof(query), "SELECT flight_nr, flight_date, cost_rob_miles, location, cancelled FROM flight JOIN users_flight ON flight.flight_nr = users_flight.flightflight_nr WHERE useruser_id = \'%s\'", uID);
 				snprintf(query, sizeof(query), "SELECT first_name, last_name, flight_nr, flight_date, cost_rob_miles, location, cancelled FROM flight JOIN users_flight ON flight.flight_nr = users_flight.flightflight_nr JOIN users ON users.user_id = users_flight.useruser_id WHERE useruser_id = \'%s\'", uID);
-				kore_log(LOG_NOTICE, "%s", query);
 				//If the query did not execute succesfull, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);

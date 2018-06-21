@@ -50,8 +50,6 @@ int serve_change_info(struct http_request *req) {
 			else {
 				//Get the old pw of the database.
 				snprintf(query, sizeof(query), "SELECT password FROM users WHERE user_id = \'%d\'",uID);
-				//Return on the cmd which query is executed.
-				kore_log(LOG_NOTICE, "%s", query);
 				//If the query failed, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);
@@ -72,8 +70,6 @@ int serve_change_info(struct http_request *req) {
 						//If an email argument is given change it.
 						if (http_argument_get_string(req, "email", &mail)) {
 							snprintf(query, sizeof(query), "UPDATE users SET mail = \'%s\' WHERE user_id = \'%d\'", mail, uID);
-							//Return on the cmd which query is executed.
-							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
 							if(!kore_pgsql_query(&sql, query)){
 								kore_pgsql_logerror(&sql);
@@ -86,8 +82,6 @@ int serve_change_info(struct http_request *req) {
 						//If a name argument is given change it.
 						if (http_argument_get_string(req, "fname", &fName)) {
 							snprintf(query, sizeof(query), "UPDATE users SET first_name = \'%s\' WHERE user_id = \'%d\'", fName, uID);
-							//Return on the cmd which query is executed.
-							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
 							if(!kore_pgsql_query(&sql, query)){
 								kore_pgsql_logerror(&sql);
@@ -100,8 +94,6 @@ int serve_change_info(struct http_request *req) {
 						//If a lastname argument is given change it.
 						if (http_argument_get_string(req, "lname", &lName)) {
 							snprintf(query, sizeof(query), "UPDATE users SET last_name = \'%s\' WHERE user_id = \'%d\'", lName, uID);
-							//Return on the cmd which query is executed.
-							kore_log(LOG_NOTICE, "%s", query);
 							//If the query failed, show a error.
 							if(!kore_pgsql_query(&sql, query)){
 								kore_pgsql_logerror(&sql);
@@ -110,7 +102,6 @@ int serve_change_info(struct http_request *req) {
 							else {
 								strcat(add, "Last name ");
 							}
-							kore_log(1,lName);
 						}
 						//If new and conf password are given change it.
 						if (http_argument_get_string(req, "passwordConfirm", &passConf)&&http_argument_get_string(req, "passwordnew", &passNew)) {
@@ -119,8 +110,6 @@ int serve_change_info(struct http_request *req) {
 							if((strcmp(passNew, passConf) == 0) && !checkPass(hs, passNew)){
 								hs = generateNewPass(passNew);
 								snprintf(query, sizeof(query), "UPDATE users SET password = \'%s\' WHERE user_id = \'%d\'", hs.HS, uID);
-								//Return on the cmd which query is executed.
-								kore_log(LOG_NOTICE, "%s", query);
 								//If the query failed, show a error.
 								if(!kore_pgsql_query(&sql, query)){
 									kore_pgsql_logerror(&sql);

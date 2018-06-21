@@ -28,12 +28,11 @@ int serve_viewflight(struct http_request *req) {
 	//Add the html to the buffer.
 	if(uID == NULL) {
 		kore_buf_append(buf, asset_infoPageFail_html, asset_len_infoPageFail_html);
-		kore_log(LOG_ALERT, "Burp Rob, they are in!");
+		own_log(LOG_ALERT, "User tried entering view_flight page with no user id");
 	}	
 	else {
 		if(req->method == HTTP_METHOD_GET){
 			http_populate_get(req);
-			kore_log(1, "dit is get");
 			if(!http_argument_get_string(req, "flightno", &fID)){
 				kore_buf_append(buf, asset_nofid_html, asset_len_nofid_html);
 			}

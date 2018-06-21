@@ -65,7 +65,6 @@ serve_orders(struct http_request *req)
 						fCan = kore_pgsql_getvalue(&sql, i, 3);
 						fCom = kore_pgsql_getvalue(&sql, i, 4);
 						fPaid = kore_pgsql_getvalue(&sql, i, 5);
-						kore_log(1, fCan);
 						if(strcmp(fCan, "t") == 0) {
 							fCan = "Flight is cancelled, order a new flight. Rob miles are lost in space";
 						}

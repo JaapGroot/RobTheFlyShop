@@ -28,7 +28,7 @@ int serve_account_info(struct http_request *req) {
 	//Add the html to the buffer.
 	if(uID == NULL) {
 		kore_buf_append(buf, asset_infoPageFail_html, asset_len_infoPageFail_html);
-		kore_log(LOG_ALERT, "Burp Rob, they are in!");
+		own_log(LOG_ALERT, "User tried entering the account info page with no user id");
 	}	
 	else {
 		kore_buf_append(buf, asset_infoPage_html, asset_len_infoPage_html);
@@ -39,7 +39,6 @@ int serve_account_info(struct http_request *req) {
 		else{
 			snprintf(query, sizeof(query), "SELECT * FROM users WHERE user_id = \'%d\'",uID);
 			//Return on the cmd which query is executed.
-			kore_log(LOG_NOTICE, "%s", query);
 			//If the query failed, show a error.
 			if(!kore_pgsql_query(&sql, query)){
 				kore_pgsql_logerror(&sql);

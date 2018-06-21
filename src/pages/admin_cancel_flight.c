@@ -46,7 +46,6 @@ int serve_admin_cancel_flight(struct http_request *req) {
 				//Save the query in a var. Limit 10, because we don't want more then 10 results and only the last 10 results.
 				snprintf(query, sizeof(query), "SELECT * FROM flight WHERE location LIKE \'%%%s%%\' AND cancelled = 'f'  ORDER BY flight_date DESC LIMIT 10",fLoc);
 				//Return on the cmd which query is executed.
-				kore_log(LOG_NOTICE, "%s", query);
 				//If the query failed, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);
@@ -91,7 +90,6 @@ int serve_admin_cancel_flight(struct http_request *req) {
 			else{
 				//Put the new SQL statement in the query. And print the query to check it.
 				snprintf(query, sizeof(query), "UPDATE flight SET cancelled = 't' WHERE flight_nr = \'%s\'", fID);
-				kore_log(LOG_NOTICE, "%s", query);
 				//If the query did not execute succesfull, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					kore_pgsql_logerror(&sql);

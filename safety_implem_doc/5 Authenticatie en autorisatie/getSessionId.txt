@@ -1,0 +1,54 @@
+De volgende functie wordt gebruikt om de user id vanuit de database op te halen 
+
+
+//Description:	Get session ID from user and request the User ID from DB
+//@input:	http_request struct
+//@output	unsigned int User ID
+unsigned int getUIDFromCookie(struct http_request *req){
+	struct		kore_pgsql sql;
+	char		*sessionId;
+	unsigned int	uid = NULL;
+	char		query[150];
+	int 		rows;
+	
+	kore_log(1, "getting uid from cookie <<");
+
+	http_populate_cookies(req);
+	kore_pgsql_init(&sql);
+
+	if (http_request_cookie(req, "session_id", &sessionId))
+	{
+		kore_log(LOG_DEBUG, "SessionID: %s", sessionId);
+	}else{
+		kore_log(LOG_DEBUG, "No Session Cookie found");
+		kore_pgsql_cleanup(&sql);
+		return NULL;
+	}
+	
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return NULL;
+	}
+
+	
+	kore_log(1, "make connection with DB");
+	snprintf(query, sizeof(query), "SELECT usersuser_id FROM session WHERE session_id = \'%s\'", sessionId);
+	kore_log(1, "%s", query);
+	
+	if(!kore_pgsql_query(&sql, query)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return NULL;
+	}
+
+	rows = kore_pgsql_ntuples(&sql);
+	kore_log(1, "returned rows: %d", rows);
+	if(rows == 1){
+		uid = atoi(kore_pgsql_getvalue(&sql, 0, 0));
+		kore_log(LOG_NOTICE, "uid: %d", uid);
+	}
+	kore_pgsql_cleanup(&sql);
+	kore_log(1, "returing uid: %d", uid);
+	return uid;
+}

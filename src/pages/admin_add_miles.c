@@ -50,7 +50,7 @@ int serve_admin_add_miles(struct http_request *req) {
 				//Save the query in a var. Limit 10, because we don't want more then 10 results.
 				snprintf(query, sizeof(query), "SELECT * FROM users WHERE last_name LIKE \'%%%s%%\' LIMIT 10",name);
 				//Return on the cmd which query is executed.
-				own_log("LOG_NOTICE", "User: %d %s %s", aID ,"Query on page ADD_MILES: ",  query);
+				own_log("LOG_NOTICE", "User: %d Query on page ADD_MULES: %s", aID,  query);
 				//If the query failed, show a error.
 				if(!kore_pgsql_query(&sql, query)){
 					own_log("LOG_ERR", "User: %d %s",aID, "Failed to execute query on page ADD_MILES");

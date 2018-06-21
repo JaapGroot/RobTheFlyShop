@@ -1,0 +1,41 @@
+Deze functie wordt gebruikt om de rol van de gebruiker te bepalen. 
+
+//Description:
+//@input:
+//@output:
+int getRoleFromUID(unsigned int uid){
+
+	struct		kore_pgsql sql;
+	char		query[300];
+	int 		i, role, rows;
+	kore_pgsql_init(&sql);
+	
+	kore_log(1, "Getting role from UID");
+
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return 0;
+	}
+
+	
+	kore_log(1, "make connection with DB");
+	snprintf(query, sizeof(query), "SELECT user_role FROM users WHERE user_id = \'%d\'", uid);
+	kore_log(1, "%s", query);
+	
+	if(!kore_pgsql_query(&sql, query)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return 0;
+	}
+
+	rows = kore_pgsql_ntuples(&sql);
+
+	for(i = 0; i < rows; i++)
+	{
+		role = atoi(kore_pgsql_getvalue(&sql, i, 0));
+		kore_log(LOG_NOTICE, "role_id: %d", role);
+	}
+	kore_pgsql_cleanup(&sql);
+	return role;
+}

@@ -1,0 +1,5 @@
+De wachtwoorden worden gehashd en gesalt, vervolgens, na gewhitelist te zijn, met een geparametriseerde query in de database gezet. 
+
+Op deze manier zorgen wij voor een veilige opslag van gegevens. 
+
+Voor meer informatie, kijk in de desbetreffende safety_implem_doc files, bijv: "hashString.txt". 

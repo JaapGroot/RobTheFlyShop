@@ -1,0 +1,34 @@
+Uiteindelijk kan de sessie ook verwijderd worden. 
+
+//Description
+//@input:
+//@output:
+int deleteSession(struct http_request *req)
+{
+	struct 		kore_pgsql sql;
+	time_t		oldTime = time(NULL) - (1*60*60*24*365);
+	unsigned int		uid = NULL;
+
+	http_response_cookie(req, "session_id", "", "/", oldTime, 0, NULL);
+	kore_pgsql_init(&sql);
+
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return 0;
+	}
+	
+	uid = getUIDFromCookie(req);
+	if(uid != NULL){
+		char query[150];
+		snprintf(query, sizeof(query), "DELETE FROM session WHERE usersuser_id = \'%d\'", uid);
+		kore_log(1, "delete query = %s", query);
+		if(!kore_pgsql_query(&sql, "DELETE FROM session WHERE")){
+			kore_pgsql_logerror(&sql);
+			kore_pgsql_cleanup(&sql);
+			return 0;
+		}
+	}
+	kore_pgsql_cleanup(&sql);
+	return 1;
+}

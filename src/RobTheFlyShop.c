@@ -10,7 +10,6 @@ int serve_page(struct http_request *, u_int8_t *, size_t len);
 
 //initializes stuff
 int init(int state){
-	kore_log(1, "[oi thats the init, init?]");
 	// init logger
 	openlog("RobTheFlyShop", 0, LOG_USER);
 	//init database
@@ -43,7 +42,7 @@ int serve_page(struct http_request *req, u_int8_t *content, size_t content_lengt
 	u_int8_t	*data;
 	unsigned int 		uID, role;
 	
-	kore_log(1, "[instert sidebar]");
+	own_log("LOG_NOTICE", "%s", "insert sidebar");	
 	uID = NULL;
 	role = NULL;
 

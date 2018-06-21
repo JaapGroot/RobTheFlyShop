@@ -1,0 +1,34 @@
+Hier wordt een session aan een cookie toegevoegd om de user te herkennen. 
+
+
+//Description:	Function to serve sessioncookie, with a session_id within the cookie and has a lifespan
+//		of one hour. 
+//@input:	http_request pointer value of the cookie (salt) and the userid
+//@output	return succes integer
+int serveCookie(struct http_request *req, char *value, int uid){
+	struct 		kore_pgsql sql;
+	char		query[300];
+	time_t		timeString = time(NULL) + (1*60*60);
+	
+	http_response_cookie(req, "session_id", value, "/", timeString, 0, NULL);
+	kore_pgsql_init(&sql);
+	kore_log(1, "push cookie to user");
+	if(!kore_pgsql_setup(&sql, "DB", KORE_PGSQL_SYNC)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return 0;
+	}
+	
+	kore_log(1, "make connection with DB");
+	snprintf(query, sizeof(query), "INSERT INTO session(usersuser_id, session_id, expire_date, login_tries) VALUES(\'%d\', \'%s\', to_timestamp(%lu), 0)", uid, value, timeString);
+	kore_log(1, "%s", query);
+	
+	if(!kore_pgsql_query(&sql, query)){
+		kore_pgsql_logerror(&sql);
+		kore_pgsql_cleanup(&sql);
+		return 0;
+	}
+	kore_log(1, "push salt to DB");
+	kore_pgsql_cleanup(&sql);
+	return 1;
+}

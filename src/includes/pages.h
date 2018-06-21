@@ -10,5 +10,6 @@ int		serve_adminflight(struct http_request *);
 int		serve_adminmiles(struct http_request *);
 int		serve_adminorders(struct http_request *);
 int 		serve_adminaccount(struct http_request *);
+int		serve_viewflight(struct http_request *);
 int		serve_orders(struct http_request *);
 #endif //pages_h

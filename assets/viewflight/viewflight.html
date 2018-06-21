@@ -1,12 +1,7 @@
-	<!--TODO: IMPLEMENT THIS PAGE AND ITS LOGIC
-	 Still waiting for the cookies to be implemented though-->
-	<h1>WORK IN PROGRESS</h1>
-	<hr>
 	<h1>Flight to: $location$</h1>
-	<p>$description$</p> <!--description is not implemented in DB yet-->
-	<p>Distance: $distance$</p>
-	<br>
+	<p>Departure date: $data$</p>
+	<p>Description: $description$</p> <!--description is not implemented in DB yet-->
 	<p>Price: $cost$<br>
-	Your funds: $cash$<br>
-	funds left: $cashLeft$</p>
-	$bookButton$
+	<form action="/viewflight" method="post">
+		<button type="submit"name="flightno" value="$flightno$">Add to cart!</button>
+	</form>

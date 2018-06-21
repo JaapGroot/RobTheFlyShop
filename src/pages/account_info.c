@@ -18,12 +18,10 @@ int serve_account_info(struct http_request *req) {
 	rMiles = NULL;
 	uID = NULL;
 
-	//TODO Get the uID from the cookie now this is hardcoded for testing.
-	
+	//Get uID from cookie	
 	uID = getUIDFromCookie(req);
-	//kore_log(1,"The user ID is: %d", uID);	
-	//uID = "3";
 
+	//Alloc the buf and init the sql
 	buf = kore_buf_alloc(0);
 	kore_pgsql_init(&sql);
 	

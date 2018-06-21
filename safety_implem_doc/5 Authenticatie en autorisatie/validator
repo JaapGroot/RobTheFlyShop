@@ -1,0 +1,5 @@
+In de "validators.c" file staat de controle of een pagina mag worden bezocht door iemand. 
+
+Wannneer de role '1' is, betekent het dat het een admin user is. 
+Wanneer de role '0' is betekent het dat het een normale gebruiker is. 
+Dit wordt gebasseerd op de session id die meegestuurd wordt vanuit de cookie.

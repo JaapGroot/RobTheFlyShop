@@ -1,0 +1,7 @@
+Use the following credentials to login to the virtual machine:
+-account	: Rob
+-passphrase	: root
+
+Use the folloing credentials to login to the admin account on RobTheFlyShop
+-email		: RobAdmin@mail.com
+-passphrase	: 12345678
